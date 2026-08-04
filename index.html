@@ -253,6 +253,8 @@
 
 </main>
 <footer>
+  <p>📚 解説記事: <a href="articles/rakuten-csv-error-all-items.html">「項目名が正しくありません」が全項目に出るときの直し方</a> / <a href="articles/rakuten-multi-sku-csv.html">マルチSKUのCSV登録方法</a><br>
+  📖 もっと詳しく: <a href="https://note.com/midas_works/n/ncad7544d90c8" target="_blank" rel="noopener">楽天CSV完全攻略ガイド(¥980・エラー辞典/チェックリスト付き)</a></p>
   <p><strong>ご利用上の注意</strong>: 本ツールは無保証で提供されます。生成されたCSVは、RMSへのアップロード前に必ず内容をご確認ください。ジャンルごとの必須属性・最新のジャンルIDはRMSでご確認ください。本ツールは楽天グループ株式会社とは関係のない非公式ツールです。入力されたデータはお使いのブラウザ内でのみ処理され、外部に送信されることはありません。</p>
   <p>© 2026 Midas Works — RakuCSV Studio β</p>
 </footer>
@@ -276,6 +278,25 @@ const HEADERS = [
   "商品属性（項目）3", "商品属性（値）3"
 ];
 const VKEY1 = "vkey-1", VKEY2 = "vkey-2";
+const GUIDE_URL = "https://note.com/midas_works/n/ncad7544d90c8";
+
+/* ガイドへの案内(生成成功時・点検結果に表示) */
+function guidePromo(context) {
+  const div = document.createElement("div");
+  div.className = "msg";
+  div.style.cssText = "background:#f8f5ff;border:1px solid #ddd0f0;color:#4c3575;";
+  const text = context === "check"
+    ? "エラーの原因と対策をもっと詳しく: "
+    : "カタログID・必須属性・エラー辞典まで網羅した ";
+  const a = document.createElement("a");
+  a.href = GUIDE_URL;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.textContent = "完全攻略ガイド(¥980・エラー辞典/チェックリスト付き)";
+  a.style.color = "#4c3575";
+  div.append("📖 " + text, a);
+  return div;
+}
 
 /* ---------- 環境依存文字の自動置換(楽天は文字化けとして拒否する) ---------- */
 const REPLACEMENTS = [
@@ -603,6 +624,7 @@ $("btn-generate").addEventListener("click", () => {
   generatedSjis = new Uint8Array(Encoding.convert(Encoding.stringToCode(csv), "SJIS", "UNICODE"));
 
   box.appendChild(msg("ok", "✔ チェック完了。CSVを生成しました。「normal-item.csv をダウンロード」ボタンで保存し、RMSの商品一括編集(またはSFTP /ritem/batch/)にアップロードしてください。"));
+  box.appendChild(guidePromo("generate"));
   renderPreview(rows);
   $("btn-download").style.display = "inline-block";
 });
@@ -899,6 +921,7 @@ function renderCheckResult(box, errors, warnings, fixable, rowCount, badEncoding
   } else if (fixable.length) {
     box.appendChild(msg("ok", `✔ 自動修正できる項目: ${fixable.join(" / ")}。「修正版をダウンロード」で修正済みCSV(Shift-JIS)を保存できます。それ以外のエラーは元データの修正が必要です。`));
   }
+  if (errors.length || warnings.length) box.appendChild(guidePromo("check"));
 }
 
 $("btn-fix-download").addEventListener("click", () => {

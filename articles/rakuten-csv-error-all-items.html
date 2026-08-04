@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天CSVで「項目名が正しくありません」が全項目に出るときの直し方（原因は1つ） | RakuCSV Studio</title>
+<meta name="description" content="楽天のnormal-item.csvで「項目名が正しくありません」が全項目に出る原因(UTF-8保存)と、Shift-JISで保存し直す手順、ヘッダー誤記の頻出パターンを解説。無料の自動診断ツールも紹介。">
+<style>
+  body { margin:0; font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; background:#f6f7f9; color:#1f2937; line-height:1.85; }
+  header { background:#bf0000; color:#fff; padding:14px 16px; }
+  header a { color:#fff; text-decoration:none; font-weight:700; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 40px; }
+  article { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:28px; }
+  h1 { font-size:1.45rem; line-height:1.5; }
+  h2 { font-size:1.15rem; border-left:4px solid #bf0000; padding-left:10px; margin-top:2em; }
+  h3 { font-size:1rem; margin-top:1.6em; }
+  table { border-collapse:collapse; font-size:.85rem; margin:1em 0; display:block; overflow-x:auto; white-space:nowrap; }
+  th,td { border:1px solid #e5e7eb; padding:6px 10px; }
+  th { background:#f9fafb; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:.85em; }
+  a { color:#bf0000; }
+  .cta { background:#fdf7f7; border:1px solid #f3d6d6; border-radius:8px; padding:14px 18px; margin:24px 0 0; }
+  footer { max-width:760px; margin:16px auto 40px; padding:0 16px; font-size:.75rem; color:#6b7280; }
+</style>
+</head>
+<body>
+<header><a href="../index.html">← RakuCSV Studio(無料ツール)に戻る</a></header>
+<main>
+<article>
+<h1>楽天CSVで「項目名が正しくありません」が全項目に出るときの直し方（原因は1つ）</h1>
+<p>楽天市場（RMS）にnormal-item.csvをアップロードしたら、「項目名〇〇は正しくありません」というエラーが<strong>全項目にずらっと表示された</strong>——。</p>
+<p>先に結論です。<strong>全項目に同時にエラーが出る場合、原因はほぼ1つ、「CSVをUTF-8で保存している」ことです。</strong> Shift-JISで保存し直せば直ります。</p>
+<p>この記事では、その理由と保存し直しの具体的な手順（Excel／メモ帳／Mac）、そして「一部の項目だけエラーが出る」別パターンの対処法まで解説します。</p>
+<h2>結論：全項目エラー＝文字コードがUTF-8になっている</h2>
+<p>楽天のnormal-item.csvは、<strong>Shift-JIS（cp932）で保存するのが安全</strong>です。UTF-8で保存したCSVをアップロードすると、楽天側でヘッダー行（1行目の項目名）が文字化けして読み取られ、<strong>すべての項目名が「正しくない」と判定されて全弾き</strong>になります。</p>
+<p>「商品管理番号欄がないか、文字コードがシフトJISでない」という趣旨のエラーが出ることもありますが、これも同じ原因です。</p>
+<p>見分け方はシンプルです。</p>
+<ul>
+<li><strong>全項目（またはほぼ全部）にエラー</strong> → 文字コード（UTF-8保存）が原因</li>
+<li><strong>一部の項目だけエラー</strong> → その項目のヘッダー名の誤記が原因（後述）</li>
+</ul>
+<p>データの中身をいくら見直しても直りません。まずファイルの保存形式を疑ってください。</p>
+<h2>なぜUTF-8だと全項目エラーになるのか</h2>
+<p>CSVの1行目には「商品管理番号（商品URL）」「商品名」といった項目名（ヘッダー）が並んでいます。楽天はこのヘッダー名の<strong>完全一致</strong>で各列を識別します。</p>
+<p>UTF-8で保存されたファイルをShift-JIS前提で読み込むと、日本語のヘッダーがすべて文字化けします。楽天から見れば「知らない項目名が並んでいるファイル」になるため、1列目から最後の列まで全部が「項目名が正しくありません」になる、という仕組みです。</p>
+<p>なお、UTF-8にBOMを付けても解決しません。<strong>UTF-8／UTF-8（BOM付き）は避け、Shift-JISで保存</strong>してください。</p>
+<h2>Shift-JISで保存し直す手順</h2>
+<h3>Excel（Windows）の場合</h3>
+<ol>
+<li>CSVファイルをExcelで開く</li>
+<li>「ファイル」→「名前を付けて保存」を選ぶ</li>
+<li>ファイルの種類で <strong>「CSV（コンマ区切り）(*.csv)」</strong> を選んで保存する</li>
+</ol>
+<p>ここで注意したいのが、ファイルの種類の一覧にある <strong>「CSV UTF-8（コンマ区切り）」を選ばない</strong>ことです。名前が似ていますが、こちらを選ぶとUTF-8のままになり、エラーが再発します。日本語版Windowsの「CSV（コンマ区切り）」であればShift-JIS系（cp932）で保存されます。</p>
+<h3>メモ帳（Windows）の場合</h3>
+<ol>
+<li>CSVファイルをメモ帳で開く</li>
+<li>「ファイル」→「名前を付けて保存」を選ぶ</li>
+<li>保存ダイアログ下部の「文字コード」で <strong>「ANSI」</strong> を選んで保存する</li>
+</ol>
+<p>日本語環境の「ANSI」がShift-JIS相当です。「UTF-8」「UTF-8（BOM付き）」のままにしないでください。</p>
+<h3>Macの場合</h3>
+<p>Macは標準環境でShift-JIS保存がしづらいのが難点です。</p>
+<ul>
+<li><strong>Excel for Mac</strong>：「名前を付けて保存」でファイル形式に「CSV（コンマ区切り）(.csv)」を選びます。「CSV UTF-8」を選ばないよう注意してください。</li>
+<li><strong>Numbersやテキストエディットしかない場合</strong>：書き出しがUTF-8になりがちで、確実にShift-JISにするのが難しいため、後述の無料ツールなどでの変換が現実的です。</li>
+</ul>
+<h2>一部の項目だけエラーが出る場合：ヘッダー名の誤記</h2>
+<p>全項目ではなく特定の項目だけに「項目名〇〇は正しくありません」と出る場合は、文字コードではなく<strong>そのヘッダー名が正式名と違う</strong>のが原因です。ヘッダーは完全一致が必要で、特に次の3パターンが頻出します。</p>
+<h3>頻出パターン1：商品属性の番号の位置</h3>
+<ul>
+<li>誤：<code>商品属性1（項目）</code></li>
+<li>正：<code>商品属性（項目）1</code>（<strong>カッコが先、番号が後</strong>）</li>
+</ul>
+<p><code>商品属性（値）1</code>、<code>商品属性（単位）1</code> も同じ形式です。</p>
+<h3>頻出パターン2：SKU画像に番号を付けてしまう</h3>
+<ul>
+<li>誤：<code>SKU画像タイプ1</code></li>
+<li>正：<code>SKU画像タイプ</code>（<strong>番号なし</strong>）</li>
+</ul>
+<p>商品画像は <code>商品画像タイプ1〜24</code>・<code>商品画像パス1〜20</code> のように番号付きですが、SKU画像（<code>SKU画像タイプ</code>／<code>SKU画像パス</code>／<code>SKU画像名（ALT）</code>）には番号が付きません。混同しやすいポイントです。</p>
+<h3>頻出パターン3：価格カラムの名前</h3>
+<p>販売価格の正式なヘッダー名は <code>通常購入販売価格</code> です。<code>販売価格</code> と書いて弾かれるケースがあります。</p>
+<p>最も確実なのは、RMSの「商品一括編集→CSVダウンロード」で空のテンプレートを取得し、<strong>そのヘッダー行をそのまま流用する</strong>方法です。</p>
+<h2>保存し直しても弾かれるとき：環境依存文字を疑う</h2>
+<p>Shift-JISで保存し直そうとするとエラーが出る、あるいはアップロードで「文字化け」として弾かれる場合は、<strong>環境依存文字</strong>が混ざっている可能性があります。™ ® © や ①②③、½などの分数、絵文字などはcp932で表現できず、楽天側で拒否されます。「①→1.」「©→(c)」のように置換するか、削除してください。</p>
+<h2>手元のCSVを自動診断・自動修正できる無料ツール</h2>
+<p>「どこがUTF-8なのか」「どのヘッダーが間違っているのか」「環境依存文字がどこにあるのか」を手作業で探すのは骨が折れます。</p>
+<p>無料のブラウザツール <strong><a href="https://pshun09156-collab.github.io/rakucsv-studio/">RakuCSV Studio</a></strong> の点検機能を使うと、手元のnormal-item.csvを読み込ませるだけで、</p>
+<ul>
+<li>UTF-8保存（文字コード）の問題</li>
+<li>ヘッダー名の誤記</li>
+<li>環境依存文字の混入</li>
+</ul>
+<p>を自動で診断し、<strong>修正済みのCSVをダウンロード</strong>できます。ブラウザ上で動くのでインストールは不要です。MacなどでShift-JIS保存に困っている場合の変換手段としても使えます。修正後のCSVをそのままRMSにアップロードし直せば、この記事で扱った系統のエラーは解消できるはずです。</p>
+<h2>さらに詳しく：CSV登録を「一発で通す」ために</h2>
+<p>文字コードとヘッダーを直しても、その先には「ジャンルIDが古い」「カタログIDが必須」「必須の商品属性が未入力」「スマホ用説明文のタグ制限」など、別系統のエラーが待っていることがあります。</p>
+<p>エラーの全パターンと対策、マルチSKUの組み方までまとめた有料ガイド <strong>「楽天市場のCSV商品登録を『一発で通す』完全攻略ガイド」（¥980）</strong> を公開しています。何度もアップロードし直す時間を短縮したい方はこちらをどうぞ。</p>
+<p>→ <a href="https://note.com/midas_works/n/ncad7544d90c8">完全攻略ガイドを読む</a></p>
+<hr />
+<p>※本記事は非公式であり、楽天グループ株式会社とは無関係です。</p>
+<div class="cta">🛠 <a href="../index.html">RakuCSV Studio</a> — 楽天CSVをブラウザで作成・点検できる無料ツール(データ送信なし・登録不要)</div>
+</article>
+</main>
+<footer><p>© 2026 Midas Works — 本サイトは非公式であり、楽天グループ株式会社とは無関係です。</p></footer>
+</body>
+</html>

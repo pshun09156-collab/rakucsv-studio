@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天のマルチSKU（バリエーション）商品をCSVで登録する方法｜定義行とSKU行の作り方 | RakuCSV Studio</title>
+<meta name="description" content="楽天市場のマルチSKU(バリエーション)商品をnormal-item.csvで登録する方法。定義行とSKU行の作り方を2軸×2選択肢=4行の実例表で解説。SKU行を自動生成できる無料ツールも紹介。">
+<style>
+  body { margin:0; font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; background:#f6f7f9; color:#1f2937; line-height:1.85; }
+  header { background:#bf0000; color:#fff; padding:14px 16px; }
+  header a { color:#fff; text-decoration:none; font-weight:700; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 40px; }
+  article { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:28px; }
+  h1 { font-size:1.45rem; line-height:1.5; }
+  h2 { font-size:1.15rem; border-left:4px solid #bf0000; padding-left:10px; margin-top:2em; }
+  h3 { font-size:1rem; margin-top:1.6em; }
+  table { border-collapse:collapse; font-size:.85rem; margin:1em 0; display:block; overflow-x:auto; white-space:nowrap; }
+  th,td { border:1px solid #e5e7eb; padding:6px 10px; }
+  th { background:#f9fafb; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:.85em; }
+  a { color:#bf0000; }
+  .cta { background:#fdf7f7; border:1px solid #f3d6d6; border-radius:8px; padding:14px 18px; margin:24px 0 0; }
+  footer { max-width:760px; margin:16px auto 40px; padding:0 16px; font-size:.75rem; color:#6b7280; }
+</style>
+</head>
+<body>
+<header><a href="../index.html">← RakuCSV Studio(無料ツール)に戻る</a></header>
+<main>
+<article>
+<h1>楽天のマルチSKU（バリエーション）商品をCSVで登録する方法｜定義行とSKU行の作り方</h1>
+<p>楽天市場でカラー違い・サイズ違いなどのバリエーション商品をnormal-item.csvで一括登録するには、<strong>「商品レベルの定義」と「SKUごとの行」の2段構え</strong>でCSVを作ります。</p>
+<p>先に全体像をまとめると、次の3点がすべてです。</p>
+<ol>
+<li>商品レベルで「バリエーション項目キー定義」「バリエーション項目名定義」「バリエーション1〜6選択肢定義」を書く（軸と選択肢の宣言）</li>
+<li>SKU行で「バリエーション項目キー1〜」「バリエーション項目選択肢1〜」を書く（各SKUがどの組み合わせかの指定）</li>
+<li><strong>軸の数×選択肢の数だけSKU行を作る</strong>（2軸×各2選択肢なら4行）</li>
+</ol>
+<p>この記事では、2軸×2選択肢＝4SKUの実例を表で示しながら、書き方とよくある失敗を解説します。</p>
+<h2>マルチSKUのCSVは「定義」と「SKU行」の2段構え</h2>
+<h3>商品レベルで書く：バリエーションの定義</h3>
+<p>まず商品レベルのカラムで、この商品にどんなバリエーション軸があり、それぞれどんな選択肢を持つかを宣言します。複数の値は <code>|</code>（パイプ）で区切ります。</p>
+<table>
+<thead>
+<tr>
+<th>カラム名</th>
+<th>記入例</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>バリエーション項目キー定義</td>
+<td><code>tkey-color\|tkey-size</code></td>
+<td>軸を識別する内部キー</td>
+</tr>
+<tr>
+<td>バリエーション項目名定義</td>
+<td><code>カラー\|サイズ</code></td>
+<td>購入者に表示される軸名（各32文字以内）</td>
+</tr>
+<tr>
+<td>バリエーション1選択肢定義</td>
+<td><code>ブラック\|ホワイト</code></td>
+<td>1軸目の選択肢</td>
+</tr>
+<tr>
+<td>バリエーション2選択肢定義</td>
+<td><code>S\|M</code></td>
+<td>2軸目の選択肢</td>
+</tr>
+</tbody>
+</table>
+<p>選択肢定義は「バリエーション1〜6選択肢定義」まであり、最大6軸・各軸40選択肢まで定義できます。</p>
+<h3>SKU行で書く：各組み合わせの指定</h3>
+<p>次に、SKUごとの行で「この行はどの組み合わせのSKUか」を指定します。使うのは <code>バリエーション項目キー1〜6</code> と <code>バリエーション項目選択肢1〜6</code> です。あわせて、SKU行には <code>SKU管理番号</code>・<code>通常購入販売価格</code>・<code>在庫数</code> が必須です。</p>
+<h2>実例：カラー2×サイズ2＝4行のSKU行</h2>
+<p>商品管理番号を <code>tshirt-001</code> とし、カラー（ブラック／ホワイト）×サイズ（S／M）の4SKUを登録する例です。<strong>組み合わせの数だけSKU行が必要</strong>なので、2軸×各2選択肢＝4行になります。</p>
+<table>
+<thead>
+<tr>
+<th>商品管理番号（商品URL）</th>
+<th>SKU管理番号</th>
+<th>バリエーション項目キー1</th>
+<th>バリエーション項目選択肢1</th>
+<th>バリエーション項目キー2</th>
+<th>バリエーション項目選択肢2</th>
+<th>通常購入販売価格</th>
+<th>在庫数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tshirt-001</td>
+<td>tshirt-001-bk-s</td>
+<td>tkey-color</td>
+<td>ブラック</td>
+<td>tkey-size</td>
+<td>S</td>
+<td>2980</td>
+<td>10</td>
+</tr>
+<tr>
+<td>tshirt-001</td>
+<td>tshirt-001-bk-m</td>
+<td>tkey-color</td>
+<td>ブラック</td>
+<td>tkey-size</td>
+<td>M</td>
+<td>2980</td>
+<td>10</td>
+</tr>
+<tr>
+<td>tshirt-001</td>
+<td>tshirt-001-wh-s</td>
+<td>tkey-color</td>
+<td>ホワイト</td>
+<td>tkey-size</td>
+<td>S</td>
+<td>2980</td>
+<td>5</td>
+</tr>
+<tr>
+<td>tshirt-001</td>
+<td>tshirt-001-wh-m</td>
+<td>tkey-color</td>
+<td>ホワイト</td>
+<td>tkey-size</td>
+<td>M</td>
+<td>2980</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<p>押さえるべきルールは次の3つです。</p>
+<ul>
+<li><strong>商品管理番号は全行で共通</strong>（半角英数2〜32byte）。この番号で「同じ商品のSKU群」だと認識されます</li>
+<li><strong>SKU管理番号は行ごとに一意</strong>（半角2〜32byte）。登録はUPSERT方式で、商品管理番号＋SKU管理番号がキーになります</li>
+<li>キー（<code>tkey-color</code> など）と選択肢の表記は、<strong>商品レベルの定義と完全に一致</strong>させます</li>
+</ul>
+<p>なお、単品（シングルSKU）の商品でもSKU行は1行必要です。マルチSKUはそれが組み合わせの数だけ増える、と考えると分かりやすいです。</p>
+<h2>よくある失敗3つ</h2>
+<h3>失敗1：定義とSKU行の表記が一致していない</h3>
+<p>商品レベルの定義に <code>ブラック|ホワイト</code> と書いたのに、SKU行の選択肢に「黒」と書いてしまう、キー定義は <code>tkey-color</code> なのにSKU行では別の表記にしてしまう、といった不一致です。定義とSKU行は文字列として完全に一致させてください。</p>
+<h3>失敗2：SKU行の数・キー設定の誤り</h3>
+<p>組み合わせの一部の行を書き忘れる、コピーの流用で<strong>SKU管理番号が重複</strong>する、行によって商品管理番号が違ってしまう、といったミスです。N軸×M選択肢＝N×M行を機械的に洗い出し、SKU管理番号は「商品管理番号＋色＋サイズ」のような規則で一意に振るのが安全です。</p>
+<h3>失敗3：そもそもCSVが読み込まれない（文字コード・ヘッダー誤記）</h3>
+<p>バリエーションの組み方以前の問題として、CSVを<strong>UTF-8で保存すると全項目に「項目名が正しくありません」と出て全弾き</strong>になります。normal-item.csvはShift-JIS（cp932）で保存してください。また、ヘッダー名は完全一致が必要で、<code>商品属性（項目）1</code>（カッコが先・番号が後）や <code>SKU画像タイプ</code>（番号なし）など、間違えやすいカラムがあります。RMSの「商品一括編集→CSVダウンロード」で取得した空テンプレのヘッダー行を流用するのが最も確実です。</p>
+<h2>組み合わせのSKU行を自動生成できる無料ツール</h2>
+<p>軸と選択肢が増えると、SKU行の手作業での展開は組み合わせ漏れや表記ゆれの温床になります。3軸×各4選択肢なら、それだけで64行です。</p>
+<p>無料のブラウザツール <strong><a href="https://pshun09156-collab.github.io/rakucsv-studio/">RakuCSV Studio</a></strong> を使うと、バリエーション軸と選択肢を入力するだけで、定義カラムと<strong>全組み合わせのSKU行を自動生成</strong>したnormal-item.csvを作成できます。作成済みのCSVに対しては、文字コード・ヘッダー誤記・環境依存文字を自動診断して修正済みCSVを出力する点検機能もあります。インストール不要でブラウザだけで動くので、まずは手元のバリエーション構成で試してみてください。</p>
+<h2>さらに詳しく：登録を「一発で通す」ために</h2>
+<p>マルチSKUの構造が正しくても、実際のアップロードでは「ジャンルIDが古い」「カタログID（JAN）またはカタログIDなしの理由が必須」「ブランド名・メーカー型番・代表カラーなどの必須商品属性が未入力」といった別のエラーで止まることがあります。とくにカタログIDと必須商品属性はSKU単位で要求されるため、マルチSKU商品では影響が大きいポイントです。</p>
+<p>エラー対策の全パターンから実際の作成フローまでまとめた有料ガイド <strong>「楽天市場のCSV商品登録を『一発で通す』完全攻略ガイド」（¥980）</strong> を公開しています。CSV登録の試行錯誤を最短で終わらせたい方はこちらをどうぞ。</p>
+<p>→ <a href="https://note.com/midas_works/n/ncad7544d90c8">完全攻略ガイドを読む</a></p>
+<hr />
+<p>※本記事は非公式であり、楽天グループ株式会社とは無関係です。</p>
+<div class="cta">🛠 <a href="../index.html">RakuCSV Studio</a> — 楽天CSVをブラウザで作成・点検できる無料ツール(データ送信なし・登録不要)</div>
+</article>
+</main>
+<footer><p>© 2026 Midas Works — 本サイトは非公式であり、楽天グループ株式会社とは無関係です。</p></footer>
+</body>
+</html>
