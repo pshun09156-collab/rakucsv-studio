@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RakuCSV Studio — 楽天市場 商品登録CSV作成ツール</title>
+<meta name="description" content="楽天市場のnormal-item.csv(SKU対応)をブラウザだけで正しく作成。Shift-JIS出力・環境依存文字の自動置換・禁止タグ検出つき。データはサーバーに送信されません。">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1f2937; --sub: #6b7280;
+    --accent: #bf0000; --accent-dark: #8f0000; --line: #e5e7eb;
+    --ok: #047857; --warn: #b45309; --err: #b91c1c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+  header { background: var(--accent); color: #fff; padding: 20px 16px; }
+  header .wrap, main { max-width: 880px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 1.35rem; }
+  header p { margin: 4px 0 0; font-size: .85rem; opacity: .92; }
+  main { padding: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin: 16px 0; }
+  .card h2 { margin: 0 0 4px; font-size: 1.05rem; border-left: 4px solid var(--accent); padding-left: 10px; }
+  .card .hint { font-size: .8rem; color: var(--sub); margin: 0 0 14px; padding-left: 14px; }
+  label { display: block; font-size: .85rem; font-weight: 600; margin: 12px 0 4px; }
+  label .req { color: var(--err); font-size: .75rem; margin-left: 6px; }
+  label .opt { color: var(--sub); font-size: .75rem; font-weight: normal; margin-left: 6px; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+    font-size: .95rem; font-family: inherit; background: #fff; color: var(--ink);
+  }
+  input:focus, textarea:focus, select:focus { outline: 2px solid rgba(191,0,0,.25); border-color: var(--accent); }
+  textarea { min-height: 90px; resize: vertical; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 16px; }
+  @media (max-width: 640px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+  .note { font-size: .78rem; color: var(--sub); margin-top: 2px; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+  button { cursor: pointer; border: none; border-radius: 8px; padding: 12px 22px; font-size: 1rem; font-weight: 700; font-family: inherit; }
+  #btn-generate { background: var(--accent); color: #fff; }
+  #btn-generate:hover { background: var(--accent-dark); }
+  #btn-download { background: var(--ok); color: #fff; display: none; }
+  #messages { margin-top: 14px; display: none; }
+  .msg { padding: 10px 12px; border-radius: 6px; font-size: .85rem; margin: 6px 0; white-space: pre-wrap; }
+  .msg.err  { background: #fef2f2; color: var(--err);  border: 1px solid #fecaca; }
+  .msg.warn { background: #fffbeb; color: var(--warn); border: 1px solid #fde68a; }
+  .msg.ok   { background: #ecfdf5; color: var(--ok);   border: 1px solid #a7f3d0; }
+  #preview-wrap { display: none; overflow-x: auto; }
+  #preview { border-collapse: collapse; font-size: .78rem; white-space: nowrap; }
+  #preview th, #preview td { border: 1px solid var(--line); padding: 4px 8px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  #preview th { background: #f9fafb; position: sticky; top: 0; }
+  footer { max-width: 880px; margin: 24px auto 40px; padding: 0 16px; font-size: .75rem; color: var(--sub); }
+  .mode-row { display: flex; gap: 24px; flex-wrap: wrap; margin: 6px 0 4px; }
+  .mode-row label { display: flex; align-items: center; gap: 6px; font-weight: normal; margin: 0; font-size: .9rem; cursor: pointer; }
+  button.secondary { background: #fff; color: var(--accent); border: 1.5px solid var(--accent); padding: 8px 16px; font-size: .9rem; }
+  button.secondary:hover { background: #fdf2f2; }
+  .sku-table { border-collapse: collapse; font-size: .8rem; margin-top: 10px; white-space: nowrap; }
+  .sku-table th, .sku-table td { border: 1px solid var(--line); padding: 4px 6px; }
+  .sku-table th { background: #f9fafb; font-weight: 600; }
+  .sku-table input { min-width: 90px; padding: 5px 8px; font-size: .85rem; }
+  .sku-table td.choice { background: #fdf7f7; font-weight: 600; }
+  #btn-check { background: var(--accent); color: #fff; }
+  #btn-check:hover { background: var(--accent-dark); }
+  #btn-fix-download { background: var(--ok); color: #fff; display: none; }
+  input[type=file] { font-size: .9rem; }
+  .summary { font-size: .9rem; font-weight: 700; margin: 12px 0 4px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>RakuCSV Studio <span style="font-size:.8rem;font-weight:normal">β</span></h1>
+    <p>楽天市場の商品登録CSV(normal-item.csv / SKU対応)をブラウザだけで正しく作成。入力データはサーバーに一切送信されません。</p>
+  </div>
+</header>
+<main>
+
+  <div class="card">
+    <h2>商品情報</h2>
+    <p class="hint">商品ページ全体に関わる情報です。</p>
+    <div class="grid2">
+      <div>
+        <label>商品管理番号（商品URL）<span class="req">必須</span></label>
+        <input type="text" id="itemUrl" maxlength="32" placeholder="例: item-0001">
+        <p class="note">半角英数字・ハイフン・アンダースコア、2〜32文字。商品URLの一部になります。</p>
+      </div>
+      <div>
+        <label>商品番号<span class="opt">任意</span></label>
+        <input type="text" id="itemNumber" maxlength="32" placeholder="例: ABC-123">
+        <p class="note">店舗内の管理用番号。空欄可。</p>
+      </div>
+    </div>
+    <label>商品名<span class="req">必須</span></label>
+    <input type="text" id="itemName" placeholder="例: 【送料無料】オリジナルTシャツ 綿100% 全5色">
+    <p class="note">全角255文字以内。環境依存文字(①・™など)は自動で置換されます。</p>
+    <div class="grid2">
+      <div>
+        <label>ジャンルID<span class="req">必須</span></label>
+        <input type="text" id="genreId" inputmode="numeric" placeholder="例: 211219">
+        <p class="note">RMSの「ディレクトリID検索」で<strong>最新のID</strong>を確認してください。古いIDはエラーになります。</p>
+      </div>
+      <div>
+        <label>キャッチコピー<span class="opt">任意</span></label>
+        <input type="text" id="catchcopy" placeholder="例: レビュー4.5★ 楽天ランキング1位">
+        <p class="note">174文字以内。</p>
+      </div>
+    </div>
+    <label>PC用商品説明文<span class="opt">任意・HTML可</span></label>
+    <textarea id="descPc" placeholder="table・inline styleなどのHTMLが使えます(外部CSS/JSは不可)"></textarea>
+    <label>スマートフォン用商品説明文<span class="opt">任意・タグ制限あり</span></label>
+    <textarea id="descSp" placeholder="&lt;br&gt;中心のシンプルなHTMLのみ。div / span / h2 / table / style属性は使えません"></textarea>
+    <label>PC用販売説明文<span class="opt">任意・HTML可</span></label>
+    <textarea id="descSale" placeholder="商品ページ下部に表示される説明文"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>SKU情報</h2>
+    <p class="hint">価格・在庫などの販売情報です。</p>
+    <div class="mode-row">
+      <label><input type="radio" name="skuMode" value="single" checked> 単品(バリエーションなし)</label>
+      <label><input type="radio" name="skuMode" value="multi"> マルチSKU(カラー・サイズ等のバリエーションあり)</label>
+    </div>
+
+    <div id="single-sku">
+      <div class="grid3">
+        <div>
+          <label>SKU管理番号<span class="req">必須</span></label>
+          <input type="text" id="skuId" maxlength="32" placeholder="例: sku-0001">
+          <p class="note">半角英数字、2〜32文字。店舗内で一意に。</p>
+        </div>
+        <div>
+          <label>販売価格(円)<span class="req">必須</span></label>
+          <input type="text" id="price" inputmode="numeric" placeholder="例: 2980">
+        </div>
+        <div>
+          <label>在庫数<span class="req">必須</span></label>
+          <input type="text" id="stock" inputmode="numeric" placeholder="例: 100">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>カタログID(JANコード)<span class="opt">ジャンルにより必須</span></label>
+          <input type="text" id="catalogId" maxlength="30" placeholder="例: 4901234567894">
+        </div>
+        <div>
+          <label>カタログIDなしの理由</label>
+          <select id="noCatalogReason">
+            <option value="">— JANを入力する場合は選択不要 —</option>
+            <option value="3">3: 当店オリジナル商品</option>
+            <option value="5">5: 該当商品コードなし</option>
+            <option value="2">2: サービス商品</option>
+            <option value="4">4: 項目選択肢別在庫商品</option>
+            <option value="1">1: セット商品(※セット用カタログIDが別途必須)</option>
+          </select>
+          <p class="note">JANコードがある場合はJAN入力を推奨。</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="multi-sku" style="display:none">
+      <div class="grid2">
+        <div>
+          <label>バリエーション軸1の名前<span class="req">必須</span></label>
+          <input type="text" id="axis1Name" maxlength="32" placeholder="例: カラー">
+        </div>
+        <div>
+          <label>軸1の選択肢(カンマ区切り)<span class="req">必須</span></label>
+          <input type="text" id="axis1Opts" placeholder="例: ブラック,ホワイト,ネイビー">
+        </div>
+        <div>
+          <label>バリエーション軸2の名前<span class="opt">任意</span></label>
+          <input type="text" id="axis2Name" maxlength="32" placeholder="例: サイズ">
+        </div>
+        <div>
+          <label>軸2の選択肢(カンマ区切り)</label>
+          <input type="text" id="axis2Opts" placeholder="例: S,M,L">
+        </div>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button type="button" id="btn-build-sku" class="secondary">SKU表を生成/更新</button>
+      </div>
+      <p class="note">SKU管理番号は「商品管理番号-連番」で自動入力されます(編集可能)。表を再生成すると表内の入力はリセットされます。</p>
+      <div style="overflow-x:auto"><table id="sku-table"></table></div>
+      <div class="grid2" style="margin-top:8px">
+        <div>
+          <label>カタログIDなしの理由(カタログID空欄のSKUに適用)</label>
+          <select id="noCatalogReasonMulti">
+            <option value="">— 各SKUにJANを入力する場合は選択不要 —</option>
+            <option value="3">3: 当店オリジナル商品</option>
+            <option value="5">5: 該当商品コードなし</option>
+            <option value="2">2: サービス商品</option>
+            <option value="4">4: 項目選択肢別在庫商品</option>
+            <option value="1">1: セット商品(※セット用カタログIDが別途必須)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>商品属性</h2>
+    <p class="hint">ジャンルによっては「ブランド名・メーカー型番・代表カラー」などが必須です。不要な行は空欄のままにしてください。マルチSKUの場合は全SKUに適用されます(代表カラーはSKU表の「代表カラー」列があればそちらを優先)。</p>
+    <div class="grid2">
+      <div>
+        <label>商品属性（項目）1</label>
+        <input type="text" id="attrKey1" value="ブランド名">
+      </div>
+      <div>
+        <label>商品属性（値）1</label>
+        <input type="text" id="attrVal1" placeholder="例: ヤマハ ※楽天のマスター表記に合わせる">
+      </div>
+      <div>
+        <label>商品属性（項目）2</label>
+        <input type="text" id="attrKey2" value="メーカー型番">
+      </div>
+      <div>
+        <label>商品属性（値）2</label>
+        <input type="text" id="attrVal2" placeholder="例: YDP-166B">
+      </div>
+      <div>
+        <label>商品属性（項目）3</label>
+        <input type="text" id="attrKey3" value="代表カラー">
+      </div>
+      <div>
+        <label>商品属性（値）3</label>
+        <input type="text" id="attrVal3" placeholder="例: ブラック ※標準色名で">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>CSV生成</h2>
+    <div class="actions">
+      <button id="btn-generate">チェックしてCSVを生成</button>
+      <button id="btn-download">normal-item.csv をダウンロード (Shift-JIS)</button>
+    </div>
+    <div id="messages"></div>
+    <div id="preview-wrap">
+      <h3 style="font-size:.9rem;margin:16px 0 6px">プレビュー</h3>
+      <table id="preview"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>既存CSVの点検(β)</h2>
+    <p class="hint">お手元の normal-item.csv をアップロード前に診断します。文字コード・ヘッダー名・必須項目・環境依存文字などの頻出エラーを検出。ファイルはブラウザ内で処理され、外部には送信されません。</p>
+    <input type="file" id="check-file" accept=".csv,text/csv,application/vnd.ms-excel">
+    <div class="actions" style="margin-top:12px">
+      <button type="button" id="btn-check">点検する</button>
+      <button type="button" id="btn-fix-download">修正版をダウンロード (Shift-JIS・自動修正適用)</button>
+    </div>
+    <div id="check-messages" style="margin-top:14px"></div>
+  </div>
+
+</main>
+<footer>
+  <p><strong>ご利用上の注意</strong>: 本ツールは無保証で提供されます。生成されたCSVは、RMSへのアップロード前に必ず内容をご確認ください。ジャンルごとの必須属性・最新のジャンルIDはRMSでご確認ください。本ツールは楽天グループ株式会社とは関係のない非公式ツールです。入力されたデータはお使いのブラウザ内でのみ処理され、外部に送信されることはありません。</p>
+  <p>© 2026 Midas Works — RakuCSV Studio β</p>
+</footer>
+
+<script src="vendor/encoding.min.js"></script>
+<script>
+"use strict";
+
+/* ---------- 出力カラム(RMS正式ヘッダー名・完全一致必須) ---------- */
+const HEADERS = [
+  "商品管理番号（商品URL）", "商品番号", "商品名", "ジャンルID", "キャッチコピー",
+  "PC用商品説明文", "スマートフォン用商品説明文", "PC用販売説明文",
+  "バリエーション項目キー定義", "バリエーション項目名定義",
+  "バリエーション1選択肢定義", "バリエーション2選択肢定義",
+  "SKU管理番号",
+  "バリエーション項目キー1", "バリエーション項目選択肢1",
+  "バリエーション項目キー2", "バリエーション項目選択肢2",
+  "通常購入販売価格", "在庫数", "カタログID", "カタログIDなしの理由",
+  "商品属性（項目）1", "商品属性（値）1",
+  "商品属性（項目）2", "商品属性（値）2",
+  "商品属性（項目）3", "商品属性（値）3"
+];
+const VKEY1 = "vkey-1", VKEY2 = "vkey-2";
+
+/* ---------- 環境依存文字の自動置換(楽天は文字化けとして拒否する) ---------- */
+const REPLACEMENTS = [
+  [/[™®]/g, ""], [/©/g, "(c)"],
+  [/①/g,"1."],[/②/g,"2."],[/③/g,"3."],[/④/g,"4."],[/⑤/g,"5."],
+  [/⑥/g,"6."],[/⑦/g,"7."],[/⑧/g,"8."],[/⑨/g,"9."],[/⑩/g,"10."],
+  [/⑪/g,"11."],[/⑫/g,"12."],[/⑬/g,"13."],[/⑭/g,"14."],[/⑮/g,"15."],
+  [/⑯/g,"16."],[/⑰/g,"17."],[/⑱/g,"18."],[/⑲/g,"19."],[/⑳/g,"20."],
+  [/½/g,"1/2"],[/¼/g,"1/4"],[/¾/g,"3/4"],
+  [/[‐–—−]/g,"-"],
+  [/ /g," "],
+  [/\p{Extended_Pictographic}/gu, ""]
+];
+
+function cleanText(s) {
+  let out = s;
+  for (const [re, to] of REPLACEMENTS) out = out.replace(re, to);
+  return out;
+}
+
+/* 説明文内の生改行はRMSのCSV取込で崩れる原因になるため変換する。
+   タグ境界(直前が「>」または直後が「<」)の改行は整形用とみなし除去、
+   文章中の改行は<br>に変換する */
+function normalizeNewlines(s) {
+  if (!/[\r\n]/.test(s)) return { text: s, changed: false };
+  let t = s.replace(/>[ \t]*\r?\n[ \t]*/g, ">").replace(/[ \t]*\r?\n[ \t]*</g, "<");
+  t = t.replace(/\r?\n/g, "<br>");
+  return { text: t, changed: true };
+}
+
+/* cp932に変換できない文字を検出して除去。除去した文字を返す */
+function stripNonCp932(s) {
+  const removed = new Set();
+  let out = "";
+  for (const ch of s) {
+    if (ch === "?") { out += ch; continue; }
+    const sjis = Encoding.convert(Encoding.stringToCode(ch), "SJIS", "UNICODE");
+    const back = Encoding.codeToString(Encoding.convert(sjis, "UNICODE", "SJIS"));
+    if (back === ch) out += ch; else removed.add(ch);
+  }
+  return { text: out, removed: [...removed] };
+}
+
+function sjisByteLength(s) {
+  return Encoding.convert(Encoding.stringToCode(s), "SJIS", "UNICODE").length;
+}
+
+/* ---------- バリデーション ---------- */
+function validate(d, warnings, errors, mode) {
+  if (!d.itemUrl) errors.push("「商品管理番号（商品URL）」は必須です。");
+  else if (!/^[a-zA-Z0-9\-_]{2,32}$/.test(d.itemUrl))
+    errors.push("「商品管理番号（商品URL）」は半角英数字・ハイフン・アンダースコアの2〜32文字で入力してください。");
+
+  if (!d.itemName) errors.push("「商品名」は必須です。");
+  else if (sjisByteLength(d.itemName) > 510) warnings.push("「商品名」が長すぎる可能性があります(255文字以内)。");
+
+  if (!d.genreId) errors.push("「ジャンルID」は必須です。");
+  else if (!/^\d+$/.test(d.genreId)) errors.push("「ジャンルID」は半角数字で入力してください。");
+
+  if (d.catchcopy && sjisByteLength(d.catchcopy) > 348) warnings.push("「キャッチコピー」が長すぎる可能性があります(174文字以内)。");
+
+  if (mode === "single") {
+    if (!d.skuId) errors.push("「SKU管理番号」は必須です。");
+    else if (!/^[a-zA-Z0-9\-_]{2,32}$/.test(d.skuId))
+      errors.push("「SKU管理番号」は半角英数字・ハイフン・アンダースコアの2〜32文字で入力してください。");
+
+    if (!d.price) errors.push("「販売価格」は必須です。");
+    else if (!/^\d{1,9}$/.test(d.price)) errors.push("「販売価格」は半角数字で入力してください(カンマ・円マーク不要)。");
+
+    if (!d.stock) errors.push("「在庫数」は必須です。");
+    else if (!/^\d{1,10}$/.test(d.stock)) errors.push("「在庫数」は半角数字で入力してください。");
+
+    if (d.catalogId && !/^[0-9A-Za-z]{1,30}$/.test(d.catalogId))
+      warnings.push("「カタログID」は通常JANコード(13桁の数字)です。値をご確認ください。");
+    if (!d.catalogId && !d.noCatalogReason)
+      warnings.push("カタログID・なしの理由がどちらも空です。ジャンルによっては「カタログIDもしくはカタログIDなしの理由が必須」エラーになります。");
+    if (d.catalogId && d.noCatalogReason)
+      warnings.push("カタログIDと「なしの理由」は同時指定できません。カタログIDを優先し、理由は出力しません。");
+    if (!d.catalogId && d.noCatalogReason === "1")
+      warnings.push("理由「1: セット商品」は別途「セット商品用カタログID」が必須になります。可能なら構成品のJANを「カタログID」に入れる方が簡単です。");
+  }
+
+  for (const [txt, name] of [[d.descPc,"PC用商品説明文"],[d.descSp,"スマートフォン用商品説明文"],[d.descSale,"PC用販売説明文"]]) {
+    if (txt && sjisByteLength(txt) > 10240) warnings.push(`「${name}」が10240byteを超えています。超過分は登録時にエラーになります。前半/後半で分割してください。`);
+  }
+
+  if (d.descSp) {
+    const banned = [];
+    if (/<\s*div[\s>]/i.test(d.descSp)) banned.push("div");
+    if (/<\s*span[\s>]/i.test(d.descSp)) banned.push("span");
+    if (/<\s*h2[\s>]/i.test(d.descSp)) banned.push("h2");
+    if (/<\s*table[\s>]/i.test(d.descSp)) banned.push("table");
+    if (/style\s*=/i.test(d.descSp)) banned.push("style属性");
+    if (banned.length) warnings.push(`スマートフォン用商品説明文に楽天で許可されないタグが含まれています: ${banned.join(", ")}。<br>中心のシンプルなHTMLに修正してください。`);
+  }
+
+  for (let i = 1; i <= 3; i++) {
+    if (d["attrVal"+i] && !d["attrKey"+i]) errors.push(`商品属性（値）${i} に対する 商品属性（項目）${i} が空です。`);
+  }
+}
+
+/* ---------- CSV組み立て ---------- */
+function attrPair(d, i, valOverride) {
+  const v = valOverride || d["attrVal" + i];
+  return v && d["attrKey" + i] ? [d["attrKey" + i], v] : ["", ""];
+}
+
+/* 単品: 1行に商品情報+SKU情報 */
+function buildSingleRow(d) {
+  const noReason = d.catalogId ? "" : d.noCatalogReason;
+  return [
+    d.itemUrl, d.itemNumber, d.itemName, d.genreId, d.catchcopy,
+    d.descPc, d.descSp, d.descSale,
+    "", "", "", "",
+    d.skuId, "", "", "", "",
+    d.price, d.stock, d.catalogId, noReason,
+    ...attrPair(d, 1), ...attrPair(d, 2), ...attrPair(d, 3)
+  ];
+}
+
+/* マルチSKU: 商品行(バリエーション定義) + SKU行×N */
+function buildMultiRows(d, m) {
+  const reasonM = $("noCatalogReasonMulti").value;
+  const hasAxis2 = m.a2.length > 0;
+  const keyDef  = hasAxis2 ? VKEY1 + "|" + VKEY2 : VKEY1;
+  const nameDef = hasAxis2 ? m.ax1n + "|" + m.ax2n : m.ax1n;
+  const rows = [[
+    d.itemUrl, d.itemNumber, d.itemName, d.genreId, d.catchcopy,
+    d.descPc, d.descSp, d.descSale,
+    keyDef, nameDef, m.a1.join("|"), m.a2.join("|"),
+    "", "", "", "", "",
+    "", "", "", "",
+    "", "", "", "", "", ""
+  ]];
+  for (const r of m.rows) {
+    rows.push([
+      d.itemUrl, "", "", "", "",
+      "", "", "",
+      "", "", "", "",
+      r.skuId, VKEY1, r.o1, hasAxis2 ? VKEY2 : "", r.o2 || "",
+      r.price, r.stock, r.catalogId, r.catalogId ? "" : reasonM,
+      ...attrPair(d, 1), ...attrPair(d, 2), ...attrPair(d, 3, r.repColor)
+    ]);
+  }
+  return rows;
+}
+
+function toCsv(rows) {
+  return rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\r\n") + "\r\n";
+}
+
+/* ---------- UI ---------- */
+let generatedSjis = null;
+const $ = (id) => document.getElementById(id);
+const FIELD_IDS = ["itemUrl","itemNumber","itemName","genreId","catchcopy","descPc","descSp","descSale",
+  "skuId","price","stock","catalogId","attrKey1","attrVal1","attrKey2","attrVal2","attrKey3","attrVal3"];
+
+/* --- 販売形態の切り替え --- */
+function skuMode() { return document.querySelector('input[name="skuMode"]:checked').value; }
+for (const r of document.querySelectorAll('input[name="skuMode"]')) {
+  r.addEventListener("change", () => {
+    $("single-sku").style.display = skuMode() === "single" ? "" : "none";
+    $("multi-sku").style.display = skuMode() === "multi" ? "" : "none";
+  });
+}
+
+/* --- SKU表(マルチSKU) --- */
+function parseOpts(s) { return cleanText(s).split(/[,、，]/).map(x => x.trim()).filter(Boolean); }
+function currentCombos() {
+  const a1 = parseOpts($("axis1Opts").value);
+  const a2 = parseOpts($("axis2Opts").value);
+  const combos = [];
+  for (const o1 of a1) {
+    if (a2.length) { for (const o2 of a2) combos.push([o1, o2]); }
+    else combos.push([o1, null]);
+  }
+  return { a1, a2, combos };
+}
+
+$("btn-build-sku").addEventListener("click", () => {
+  const { a1, a2, combos } = currentCombos();
+  const t = $("sku-table");
+  t.innerHTML = "";
+  if (!a1.length) {
+    t.innerHTML = "<tr><td>軸1の選択肢を入力してから「SKU表を生成/更新」を押してください。</td></tr>";
+    return;
+  }
+  const ax1n = $("axis1Name").value.trim() || "軸1";
+  const ax2n = $("axis2Name").value.trim() || "軸2";
+  const colorAxis = /カラー|色/.test(ax1n) ? 0 : (a2.length && /カラー|色/.test(ax2n) ? 1 : -1);
+  const base = $("itemUrl").value.trim() || "item";
+
+  const head = document.createElement("tr");
+  const cols = ["#", ax1n, ...(a2.length ? [ax2n] : []), "SKU管理番号", "販売価格", "在庫数", "カタログID(JAN)", "代表カラー"];
+  for (const c of cols) { const th = document.createElement("th"); th.textContent = c; head.appendChild(th); }
+  t.appendChild(head);
+
+  combos.forEach(([o1, o2], i) => {
+    const tr = document.createElement("tr");
+    tr.dataset.o1 = o1;
+    tr.dataset.o2 = o2 || "";
+    const num = document.createElement("td"); num.textContent = i + 1; tr.appendChild(num);
+    const c1 = document.createElement("td"); c1.className = "choice"; c1.textContent = o1; tr.appendChild(c1);
+    if (a2.length) { const c2 = document.createElement("td"); c2.className = "choice"; c2.textContent = o2; tr.appendChild(c2); }
+    const defColor = colorAxis === 0 ? o1 : colorAxis === 1 ? o2 : "";
+    const fields = [
+      ["skuId", `${base}-${String(i + 1).padStart(2, "0")}`],
+      ["price", ""], ["stock", ""], ["catalogId", ""], ["repColor", defColor]
+    ];
+    for (const [f, def] of fields) {
+      const td = document.createElement("td");
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.dataset.f = f; inp.value = def;
+      td.appendChild(inp); tr.appendChild(td);
+    }
+    t.appendChild(tr);
+  });
+});
+
+/* SKU表の読み取り+検証 */
+function collectMulti(warnings, errors) {
+  for (const id of ["axis1Name", "axis2Name"]) {
+    const { text, removed } = stripNonCp932(cleanText($(id).value.trim()));
+    if (removed.length) warnings.push(`Shift-JISで表現できない文字を除去しました: ${removed.join(" ")}`);
+    $(id).value = text;
+  }
+  const ax1n = $("axis1Name").value.trim();
+  const ax2n = $("axis2Name").value.trim();
+  const { a1, a2, combos } = currentCombos();
+
+  if (!ax1n) errors.push("マルチSKUでは「バリエーション軸1の名前」が必須です。");
+  if (!a1.length) errors.push("マルチSKUでは「軸1の選択肢」が必須です。");
+  if (a2.length && !ax2n) errors.push("軸2の選択肢を入力した場合は「軸2の名前」も入力してください。");
+  if (ax2n && !a2.length) errors.push("軸2の名前を入力した場合は「軸2の選択肢」も入力してください。");
+  if (new Set(a1).size !== a1.length || (a2.length && new Set(a2).size !== a2.length))
+    errors.push("バリエーションの選択肢に重複があります。");
+  if (a1.length > 40 || a2.length > 40) errors.push("選択肢は1軸につき40個までです。");
+
+  const trs = [...$("sku-table").querySelectorAll("tr[data-o1]")];
+  if (!trs.length) { errors.push("「SKU表を生成/更新」を押してSKU表を作成し、価格・在庫を入力してください。"); return null; }
+  const tableCombos = trs.map(tr => [tr.dataset.o1, tr.dataset.o2 || null]);
+  if (JSON.stringify(tableCombos) !== JSON.stringify(combos)) {
+    errors.push("バリエーション軸の設定がSKU表と食い違っています。「SKU表を生成/更新」を押して表を作り直してください。");
+    return null;
+  }
+
+  const rows = [];
+  const seen = new Set();
+  let missingCatalog = false;
+  trs.forEach((tr, i) => {
+    const r = { o1: tr.dataset.o1, o2: tr.dataset.o2 || null };
+    for (const inp of tr.querySelectorAll("input[data-f]")) {
+      const { text, removed } = stripNonCp932(cleanText(inp.value.trim()));
+      if (removed.length) warnings.push(`SKU表${i + 1}行目: Shift-JISで表現できない文字を除去しました: ${removed.join(" ")}`);
+      inp.value = text;
+      r[inp.dataset.f] = text;
+    }
+    const label = `SKU表${i + 1}行目(${r.o1}${r.o2 ? "/" + r.o2 : ""})`;
+    if (!/^[a-zA-Z0-9\-_]{2,32}$/.test(r.skuId)) errors.push(`${label}: SKU管理番号は半角英数字・ハイフン・アンダースコアの2〜32文字で入力してください。`);
+    if (seen.has(r.skuId)) errors.push(`${label}: SKU管理番号「${r.skuId}」が重複しています。`);
+    seen.add(r.skuId);
+    if (!/^\d{1,9}$/.test(r.price)) errors.push(`${label}: 販売価格は半角数字で入力してください。`);
+    if (!/^\d{1,10}$/.test(r.stock)) errors.push(`${label}: 在庫数は半角数字で入力してください。`);
+    if (r.catalogId && !/^[0-9A-Za-z]{1,30}$/.test(r.catalogId)) warnings.push(`${label}: カタログIDの値をご確認ください(通常は13桁のJANコード)。`);
+    if (!r.catalogId) missingCatalog = true;
+    rows.push(r);
+  });
+
+  const reasonM = $("noCatalogReasonMulti").value;
+  if (missingCatalog && !reasonM)
+    warnings.push("カタログIDが空のSKUがあり、「カタログIDなしの理由」も未選択です。ジャンルによっては必須エラーになります。");
+  if (reasonM === "1")
+    warnings.push("理由「1: セット商品」は別途「セット商品用カタログID」が必須になります。可能なら各SKUにJANを入れる方が簡単です。");
+
+  return { ax1n, ax2n, a1, a2, rows };
+}
+
+$("btn-generate").addEventListener("click", () => {
+  const warnings = [], errors = [], cleanedNotes = [];
+  const d = {};
+  for (const id of FIELD_IDS) {
+    const raw = $(id).value.trim();
+    const cleaned = cleanText(raw);
+    if (cleaned !== raw) cleanedNotes.push(id);
+    const { text, removed } = stripNonCp932(cleaned);
+    if (removed.length) warnings.push(`Shift-JISで表現できない文字を除去しました: ${removed.join(" ")}`);
+    d[id] = text;
+    $(id).value = text;
+  }
+  d.noCatalogReason = $("noCatalogReason").value;
+  const mode = skuMode();
+
+  let newlineConverted = false;
+  for (const id of ["descPc", "descSp", "descSale"]) {
+    const r = normalizeNewlines(d[id]);
+    d[id] = r.text;
+    if (r.changed) newlineConverted = true;
+  }
+  if (newlineConverted) warnings.push("説明文内の改行はCSV取込エラーの原因になるため変換しました(文章中の改行→<br>、タグ間の整形用改行→除去)。入力欄の表示はそのままです。");
+
+  if (cleanedNotes.length) warnings.push("環境依存文字(™・①・—など)を自動置換しました。入力欄の内容が更新されています。");
+
+  validate(d, warnings, errors, mode);
+
+  let multi = null;
+  if (mode === "multi") multi = collectMulti(warnings, errors);
+
+  const box = $("messages");
+  box.innerHTML = "";
+  box.style.display = "block";
+  for (const e of errors) box.appendChild(msg("err", "✖ " + e));
+  for (const w of warnings) box.appendChild(msg("warn", "⚠ " + w));
+
+  if (errors.length) {
+    $("btn-download").style.display = "none";
+    $("preview-wrap").style.display = "none";
+    generatedSjis = null;
+    return;
+  }
+
+  const rows = mode === "multi"
+    ? [HEADERS, ...buildMultiRows(d, multi)]
+    : [HEADERS, buildSingleRow(d)];
+  const csv = toCsv(rows);
+  generatedSjis = new Uint8Array(Encoding.convert(Encoding.stringToCode(csv), "SJIS", "UNICODE"));
+
+  box.appendChild(msg("ok", "✔ チェック完了。CSVを生成しました。「normal-item.csv をダウンロード」ボタンで保存し、RMSの商品一括編集(またはSFTP /ritem/batch/)にアップロードしてください。"));
+  renderPreview(rows);
+  $("btn-download").style.display = "inline-block";
+});
+
+$("btn-download").addEventListener("click", () => {
+  if (!generatedSjis) return;
+  const blob = new Blob([generatedSjis], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "normal-item.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+function msg(cls, text) {
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  div.textContent = text;
+  return div;
+}
+
+function renderPreview(rows) {
+  const t = $("preview");
+  t.innerHTML = "";
+  const thead = document.createElement("tr");
+  for (const h of rows[0]) { const th = document.createElement("th"); th.textContent = h; thead.appendChild(th); }
+  t.appendChild(thead);
+  for (const row of rows.slice(1)) {
+    const tr = document.createElement("tr");
+    for (const v of row) { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }
+    t.appendChild(tr);
+  }
+  $("preview-wrap").style.display = "block";
+}
+
+/* ================= 既存CSVの点検 ================= */
+
+/* 正式ヘッダー名(確実に把握しているもの)。無い名前は「要確認」警告に留める */
+const KNOWN_HEADERS = (() => {
+  const s = new Set([
+    "商品管理番号（商品URL）","商品番号","商品名","倉庫指定","サーチ表示","消費税","消費税率",
+    "販売期間指定（開始日時）","販売期間指定（終了日時）","ポイント変倍率",
+    "ポイント変倍率適用期間（開始日時）","ポイント変倍率適用期間（終了日時）",
+    "注文ボタン","商品問い合わせボタン","予約商品発売日","闇市パスワード","在庫表示","代引料",
+    "ジャンルID","非製品属性タグID","キャッチコピー","PC用商品説明文","スマートフォン用商品説明文","PC用販売説明文",
+    "動画","白背景画像タイプ","白背景画像パス","商品情報レイアウト","ヘッダー・フッター・レフトナビ",
+    "表示項目の並び順","共通説明文（小）","目玉商品","共通説明文（大）","レビュー本文表示",
+    "メーカー提供情報表示","定期購入ボタン",
+    "バリエーション項目キー定義","バリエーション項目名定義",
+    "選択肢タイプ","商品オプション項目名","商品オプション選択必須",
+    "SKU管理番号","システム連携用SKU番号","通常購入販売価格","表示価格","二重価格文言管理番号",
+    "注文受付数","再入荷お知らせボタン","のし対応","在庫数","在庫戻しフラグ","在庫切れ時の注文受付",
+    "SKU倉庫指定","あす楽配送管理番号","配送方法セット管理番号","送料","送料区分1","送料区分2",
+    "個別送料","地域別個別送料管理番号","単品配送設定使用","海外配送管理番号",
+    "カタログID","カタログIDなしの理由","セット商品用カタログID",
+    "SKU画像タイプ","SKU画像パス","SKU画像名（ALT）","定期商品販売価格","初回価格"
+  ]);
+  for (let i = 1; i <= 24; i++) s.add(`商品画像タイプ${i}`);
+  for (let i = 1; i <= 20; i++) { s.add(`商品画像パス${i}`); s.add(`商品画像名（ALT）${i}`); }
+  for (let i = 1; i <= 6; i++) { s.add(`バリエーション${i}選択肢定義`); s.add(`バリエーション項目キー${i}`); s.add(`バリエーション項目選択肢${i}`); }
+  for (let i = 1; i <= 100; i++) { s.add(`商品オプション選択肢${i}`); s.add(`商品属性（項目）${i}`); s.add(`商品属性（値）${i}`); s.add(`商品属性（単位）${i}`); }
+  for (let i = 1; i <= 5; i++) { s.add(`自由入力行（項目）${i}`); s.add(`自由入力行（値）${i}`); }
+  return s;
+})();
+
+/* 頻出のヘッダー誤記 → 正式名の修正提案(自動修正対象) */
+const HEADER_FIXES = [
+  [/^商品属性(\d+)（項目）$/, (m) => `商品属性（項目）${m[1]}`],
+  [/^商品属性(\d+)（値）$/, (m) => `商品属性（値）${m[1]}`],
+  [/^商品属性(\d+)（単位）$/, (m) => `商品属性（単位）${m[1]}`],
+  [/^SKU画像タイプ\d+$/, () => "SKU画像タイプ"],
+  [/^SKU画像パス\d+$/, () => "SKU画像パス"],
+  [/^SKU画像名（ALT）\d+$/, () => "SKU画像名（ALT）"],
+  [/^販売価格$/, () => "通常購入販売価格"]
+];
+
+function parseCsv(text) {
+  const rows = []; let row = [], field = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+    else if (c !== "\r") field += c;
+  }
+  if (field !== "" || row.length) { row.push(field); rows.push(row); }
+  while (rows.length && rows[rows.length - 1].every(v => v === "")) rows.pop();
+  return rows;
+}
+
+/* 行番号リストの表示用(先頭5件+件数) */
+function rowList(nums) {
+  const shown = nums.slice(0, 5).map(n => `${n}行目`).join("、");
+  return nums.length > 5 ? `${shown} 他${nums.length - 5}行` : shown;
+}
+
+let checkFile = null, fixedSjis = null;
+$("check-file").addEventListener("change", (e) => {
+  checkFile = e.target.files[0] || null;
+  fixedSjis = null;
+  $("btn-fix-download").style.display = "none";
+  $("check-messages").innerHTML = "";
+});
+
+$("btn-check").addEventListener("click", async () => {
+  const box = $("check-messages");
+  box.innerHTML = "";
+  fixedSjis = null;
+  $("btn-fix-download").style.display = "none";
+  if (!checkFile) { box.appendChild(msg("err", "✖ CSVファイルを選択してください。")); return; }
+
+  const errors = [], warnings = [];
+  let fixable = [];
+
+  if (!/^normal-item/i.test(checkFile.name)) {
+    warnings.push(`ファイル名「${checkFile.name}」は normal-item で始まっていません。アップロード時は normal-item.csv にしてください。`);
+  }
+
+  const buf = new Uint8Array(await checkFile.arrayBuffer());
+  const detected = Encoding.detect(buf) || "不明";
+  let needsEncodeFix = false;
+  if (detected === "UTF8" || detected === "UNICODE" || detected === "UTF16" || detected === "UTF16BE" || detected === "UTF16LE" || detected === "UTF32") {
+    errors.push(`文字コードが ${detected} です。このままアップロードすると全項目に「項目名が正しくありません」等が出て弾かれます。Shift-JISで保存し直すか、下の「修正版をダウンロード」をお使いください。`);
+    needsEncodeFix = true;
+    fixable.push("Shift-JIS(cp932)への変換");
+  }
+
+  let text;
+  try {
+    text = Encoding.codeToString(Encoding.convert(buf, "UNICODE", detected === "不明" ? undefined : detected));
+  } catch (e) {
+    box.appendChild(msg("err", "✖ ファイルを読み取れませんでした。CSVファイルかご確認ください。"));
+    return;
+  }
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+  const rows = parseCsv(text);
+  if (rows.length < 2) {
+    errors.push("データ行がありません(1行目のヘッダーの下に商品データが必要です)。");
+    renderCheckResult(box, errors, warnings, []);
+    return;
+  }
+  const header = rows[0];
+  const data = rows.slice(1);
+
+  /* --- ヘッダー点検 --- */
+  const headerRenames = {};
+  const unknown = [];
+  const seenH = new Set();
+  header.forEach((h) => {
+    if (seenH.has(h) && h !== "") warnings.push(`ヘッダー「${h}」が重複しています。`);
+    seenH.add(h);
+    if (h === "" || KNOWN_HEADERS.has(h)) return;
+    let fixed = null;
+    for (const [re, to] of HEADER_FIXES) {
+      const m = h.match(re);
+      if (m) { fixed = to(m); break; }
+    }
+    if (fixed) {
+      errors.push(`ヘッダー「${h}」は誤りです。正式名は「${fixed}」(自動修正可)。`);
+      headerRenames[h] = fixed;
+    } else {
+      unknown.push(h);
+    }
+  });
+  if (Object.keys(headerRenames).length) fixable.push(`ヘッダー誤記の修正 ${Object.keys(headerRenames).length}件`);
+  if (unknown.length) {
+    warnings.push(`既知リストにないヘッダーが${unknown.length}件あります: ${unknown.slice(0, 8).join("、")}${unknown.length > 8 ? " ほか" : ""}。RMSからダウンロードしたテンプレ由来なら問題ない可能性が高いですが、手打ちした場合は綴りをご確認ください。`);
+  }
+  if (!header.includes("商品管理番号（商品URL）")) {
+    errors.push("必須ヘッダー「商品管理番号（商品URL）」がありません。文字コードまたはヘッダー誤記をご確認ください。");
+  }
+
+  /* --- 行構造点検 --- */
+  const badCols = [];
+  data.forEach((r, i) => { if (r.length !== header.length) badCols.push(i + 2); });
+  if (badCols.length) errors.push(`列数がヘッダー(${header.length}列)と一致しない行があります: ${rowList(badCols)}。Excelの操作等で列がずれていないかご確認ください。`);
+
+  /* --- 内容点検(該当カラムがある場合のみ) --- */
+  const idx = (name) => header.indexOf(name);
+  const val = (r, i) => (i >= 0 && i < r.length ? r[i].trim() : "");
+
+  const iUrl = idx("商品管理番号（商品URL）");
+  if (iUrl >= 0) {
+    const empty = [], badFmt = [];
+    data.forEach((r, i) => {
+      const v = val(r, iUrl);
+      if (!v) empty.push(i + 2);
+      else if (!/^[a-zA-Z0-9\-_]{2,32}$/.test(v)) badFmt.push(i + 2);
+    });
+    if (empty.length) errors.push(`商品管理番号（商品URL）が空の行があります: ${rowList(empty)}。全行に必須です。`);
+    if (badFmt.length) warnings.push(`商品管理番号（商品URL）の形式が疑わしい行があります(半角英数-_ 2〜32文字): ${rowList(badFmt)}`);
+  }
+
+  for (const [name, re, label] of [
+    ["ジャンルID", /^\d+$/, "半角数字"],
+    ["通常購入販売価格", /^\d{1,9}$/, "半角数字(カンマ・円マーク不可)"],
+    ["在庫数", /^\d{1,10}$/, "半角数字"]
+  ]) {
+    const ci = idx(name);
+    if (ci < 0) continue;
+    const bad = [];
+    data.forEach((r, i) => { const v = val(r, ci); if (v && !re.test(v)) bad.push(i + 2); });
+    if (bad.length) errors.push(`「${name}」に${label}でない値があります: ${rowList(bad)}`);
+  }
+
+  const iSku = idx("SKU管理番号");
+  if (iSku >= 0) {
+    const seen = new Map(), dup = [];
+    data.forEach((r, i) => {
+      const v = val(r, iSku);
+      if (!v) return;
+      if (seen.has(v)) dup.push(i + 2); else seen.set(v, i + 2);
+    });
+    if (dup.length) warnings.push(`SKU管理番号が重複しています(店舗内で一意である必要があります): ${rowList(dup)}`);
+  }
+
+  const iSp = idx("スマートフォン用商品説明文");
+  if (iSp >= 0) {
+    const bad = [];
+    data.forEach((r, i) => {
+      const v = val(r, iSp);
+      if (v && (/<\s*(div|span|h2|table)[\s>]/i.test(v) || /style\s*=/i.test(v))) bad.push(i + 2);
+    });
+    if (bad.length) errors.push(`スマートフォン用商品説明文に許可されないタグ(div/span/h2/table/style属性)を含む行があります: ${rowList(bad)}`);
+  }
+
+  header.forEach((h, ci) => {
+    if (!/画像パス/.test(h)) return;
+    const bad = [];
+    data.forEach((r, i) => { if (/^https?:\/\//i.test(val(r, ci))) bad.push(i + 2); });
+    if (bad.length) errors.push(`「${h}」にフルURLが入っている行があります: ${rowList(bad)}。画像パスは相対パス(/フォルダ/ファイル.jpg)で指定してください。`);
+  });
+
+  const iCat = idx("カタログID"), iReason = idx("カタログIDなしの理由"), iSetCat = idx("セット商品用カタログID");
+  if (iCat >= 0 && iReason >= 0 && iSku >= 0) {
+    const both = [], neither = [], reason1 = [];
+    data.forEach((r, i) => {
+      if (!val(r, iSku)) return;
+      const c = val(r, iCat), re = val(r, iReason);
+      if (c && re) both.push(i + 2);
+      if (!c && !re) neither.push(i + 2);
+      if (re === "1" && !(iSetCat >= 0 && val(r, iSetCat))) reason1.push(i + 2);
+    });
+    if (neither.length) warnings.push(`カタログIDと「なしの理由」がどちらも空のSKU行があります: ${rowList(neither)}。ジャンルによっては必須エラーになります。`);
+    if (both.length) warnings.push(`カタログIDと「なしの理由」が両方入っている行があります: ${rowList(both)}。どちらか一方にしてください。`);
+    if (reason1.length) warnings.push(`理由「1: セット商品」なのに「セット商品用カタログID」が無い行があります: ${rowList(reason1)}。本体と同じJANをカタログIDに入れる方法もご検討ください(詳細はガイド参照)。`);
+  }
+
+  /* --- 環境依存文字 --- */
+  const badChars = new Set();
+  let badCharRows = [];
+  data.forEach((r, i) => {
+    let has = false;
+    for (const cell of r) {
+      const cleaned = cleanText(cell);
+      const { removed } = stripNonCp932(cleaned);
+      if (cleaned !== cell || removed.length) { has = true; removed.forEach(ch => badChars.add(ch)); }
+    }
+    if (has) badCharRows.push(i + 2);
+  });
+  if (badCharRows.length) {
+    errors.push(`環境依存文字(™・①・—・絵文字など${badChars.size ? "、うち変換不能: " + [...badChars].slice(0, 10).join(" ") : ""})を含む行があります: ${rowList(badCharRows)}。文字化けエラーの原因になります(自動修正可)。`);
+    fixable.push("環境依存文字の置換・除去");
+  }
+
+  /* --- 自動修正版の生成 --- */
+  if (fixable.length && !badCols.length) {
+    const fixedHeader = header.map(h => headerRenames[h] || h);
+    const fixedData = data.map(r => r.map(cell => stripNonCp932(cleanText(cell)).text));
+    const csv = toCsv([fixedHeader, ...fixedData]);
+    fixedSjis = new Uint8Array(Encoding.convert(Encoding.stringToCode(csv), "SJIS", "UNICODE"));
+    $("btn-fix-download").style.display = "inline-block";
+  } else if (fixable.length && badCols.length) {
+    warnings.push("列数不一致の行があるため自動修正版は生成できません。列ずれを直してから再点検してください。");
+    fixable = [];
+  }
+
+  renderCheckResult(box, errors, warnings, fixable, data.length, needsEncodeFix ? detected : null);
+});
+
+function renderCheckResult(box, errors, warnings, fixable, rowCount, badEncoding) {
+  const sum = document.createElement("div");
+  sum.className = "summary";
+  sum.textContent = `点検結果: エラー ${errors.length}件 / 警告 ${warnings.length}件` + (rowCount ? `(データ${rowCount}行)` : "");
+  box.appendChild(sum);
+  for (const e of errors) box.appendChild(msg("err", "✖ " + e));
+  for (const w of warnings) box.appendChild(msg("warn", "⚠ " + w));
+  if (!errors.length && !warnings.length) {
+    box.appendChild(msg("ok", "✔ 問題は見つかりませんでした。このままアップロードできる見込みです(ジャンル固有の必須属性・最新ジャンルIDはRMSでご確認ください)。"));
+  } else if (fixable.length) {
+    box.appendChild(msg("ok", `✔ 自動修正できる項目: ${fixable.join(" / ")}。「修正版をダウンロード」で修正済みCSV(Shift-JIS)を保存できます。それ以外のエラーは元データの修正が必要です。`));
+  }
+}
+
+$("btn-fix-download").addEventListener("click", () => {
+  if (!fixedSjis) return;
+  const blob = new Blob([fixedSjis], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "normal-item.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+</script>
+</body>
+</html>
