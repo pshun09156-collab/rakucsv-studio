@@ -238,6 +238,16 @@
     <div class="actions">
       <button id="btn-generate">チェックしてCSVを生成</button>
       <button id="btn-download">normal-item.csv をダウンロード (Shift-JIS)</button>
+      <button type="button" id="btn-add-to-list" class="secondary" style="display:none">この商品をリストに追加</button>
+    </div>
+    <div id="item-list-box" style="display:none;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)">
+      <div class="summary">商品リスト <span id="item-count">0</span>件 — まとめて1つのCSVに出力できます</div>
+      <table id="item-list" class="sku-table" style="width:auto"></table>
+      <div class="actions" style="margin-top:10px">
+        <button type="button" id="btn-download-all">リスト全件をCSVでダウンロード</button>
+        <button type="button" id="btn-clear-list" class="secondary">リストを空にする</button>
+      </div>
+      <p class="note">「リストに追加」後にフォームを書き換えて次の商品を入力し、また追加していけば複数商品を1ファイルにまとめられます。リストはこのページを閉じるまで保持されます。</p>
     </div>
     <div id="messages"></div>
     <div id="preview-wrap">
@@ -455,7 +465,7 @@ function toCsv(rows) {
 }
 
 /* ---------- UI ---------- */
-let generatedSjis = null;
+let generatedSjis = null, lastGenerated = null;
 const $ = (id) => document.getElementById(id);
 const FIELD_IDS = ["itemUrl","itemNumber","itemName","genreId","catchcopy","descPc","descSp","descSale",
   "skuId","price","stock","catalogId","attrKey1","attrVal1","attrKey2","attrVal2","attrKey3","attrVal3"];
@@ -618,16 +628,19 @@ $("btn-generate").addEventListener("click", () => {
 
   if (errors.length) {
     $("btn-download").style.display = "none";
+    $("btn-add-to-list").style.display = "none";
     $("preview-wrap").style.display = "none";
     generatedSjis = null;
+    lastGenerated = null;
     return;
   }
 
-  const rows = mode === "multi"
-    ? [HEADERS, ...buildMultiRows(d, multi)]
-    : [HEADERS, buildSingleRow(d)];
+  const dataRows = mode === "multi" ? buildMultiRows(d, multi) : [buildSingleRow(d)];
+  const rows = [HEADERS, ...dataRows];
   const csv = toCsv(rows);
   generatedSjis = new Uint8Array(Encoding.convert(Encoding.stringToCode(csv), "SJIS", "UNICODE"));
+  lastGenerated = { itemUrl: d.itemUrl, itemName: d.itemName, rows: dataRows, mode };
+  $("btn-add-to-list").style.display = "inline-block";
 
   box.appendChild(msg("ok", "✔ チェック完了。CSVを生成しました。「normal-item.csv をダウンロード」ボタンで保存し、RMSの商品一括編集(またはSFTP /ritem/batch/)にアップロードしてください。"));
   box.appendChild(guidePromo("generate"));
@@ -637,12 +650,71 @@ $("btn-generate").addEventListener("click", () => {
 
 $("btn-download").addEventListener("click", () => {
   if (!generatedSjis) return;
-  const blob = new Blob([generatedSjis], { type: "text/csv" });
+  downloadCsvBytes(generatedSjis);
+});
+
+function downloadCsvBytes(bytes) {
+  const blob = new Blob([bytes], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "normal-item.csv";
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+/* --- 複数商品リスト --- */
+const itemList = [];
+
+$("btn-add-to-list").addEventListener("click", () => {
+  if (!lastGenerated) return;
+  const dup = itemList.findIndex(it => it.itemUrl === lastGenerated.itemUrl);
+  if (dup >= 0) {
+    itemList[dup] = lastGenerated;
+    $("messages").appendChild(msg("ok", `✔ 商品管理番号「${lastGenerated.itemUrl}」は既にリストにあったため、内容を上書きしました。`));
+  } else {
+    itemList.push(lastGenerated);
+    $("messages").appendChild(msg("ok", `✔ 「${lastGenerated.itemName || lastGenerated.itemUrl}」をリストに追加しました(計${itemList.length}件)。フォームを書き換えて次の商品を入力できます。`));
+  }
+  renderItemList();
+});
+
+function renderItemList() {
+  const box = $("item-list-box"), t = $("item-list");
+  $("item-count").textContent = itemList.length;
+  t.innerHTML = "";
+  if (!itemList.length) { box.style.display = "none"; return; }
+  box.style.display = "block";
+  const head = document.createElement("tr");
+  for (const c of ["#", "商品管理番号", "商品名", "SKU数", ""]) {
+    const th = document.createElement("th"); th.textContent = c; head.appendChild(th);
+  }
+  t.appendChild(head);
+  itemList.forEach((it, i) => {
+    const tr = document.createElement("tr");
+    const skuCount = it.mode === "multi" ? it.rows.length - 1 : 1;
+    for (const v of [i + 1, it.itemUrl, it.itemName, skuCount]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    const tdBtn = document.createElement("td");
+    const rm = document.createElement("button");
+    rm.type = "button"; rm.className = "secondary"; rm.textContent = "削除";
+    rm.style.cssText = "padding:3px 10px;font-size:.8rem";
+    rm.addEventListener("click", () => { itemList.splice(i, 1); renderItemList(); });
+    tdBtn.appendChild(rm); tr.appendChild(tdBtn);
+    t.appendChild(tr);
+  });
+}
+
+$("btn-download-all").addEventListener("click", () => {
+  if (!itemList.length) return;
+  const rows = [HEADERS, ...itemList.flatMap(it => it.rows)];
+  const csv = toCsv(rows);
+  downloadCsvBytes(new Uint8Array(Encoding.convert(Encoding.stringToCode(csv), "SJIS", "UNICODE")));
+});
+
+$("btn-clear-list").addEventListener("click", () => {
+  itemList.length = 0;
+  renderItemList();
 });
 
 function msg(cls, text) {
