@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天のジャンルID（全商品ディレクトリID）の調べ方と「存在しない・古い」エラーの直し方 | RakuCSV Studio</title>
+<meta name="description" content="楽天のジャンルID(全商品ディレクトリID)の調べ方と「存在しない・古い」エラーの直し方。RMSのディレクトリID検索の手順とランキングURLでの簡易照合Tipを解説。">
+<link rel="canonical" href="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-genre-id.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="楽天のジャンルID（全商品ディレクトリID）の調べ方と「存在しない・古い」エラーの直し方">
+<meta property="og:description" content="楽天のジャンルID(全商品ディレクトリID)の調べ方と「存在しない・古い」エラーの直し方。RMSのディレクトリID検索の手順とランキングURLでの簡易照合Tipを解説。">
+<meta property="og:url" content="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-genre-id.html">
+<meta name="twitter:card" content="summary">
+<style>
+  body { margin:0; font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; background:#f6f7f9; color:#1f2937; line-height:1.85; }
+  header { background:#bf0000; color:#fff; padding:14px 16px; }
+  header a { color:#fff; text-decoration:none; font-weight:700; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 40px; }
+  article { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:28px; }
+  h1 { font-size:1.45rem; line-height:1.5; }
+  h2 { font-size:1.15rem; border-left:4px solid #bf0000; padding-left:10px; margin-top:2em; }
+  h3 { font-size:1rem; margin-top:1.6em; }
+  table { border-collapse:collapse; font-size:.85rem; margin:1em 0; display:block; overflow-x:auto; white-space:nowrap; }
+  th,td { border:1px solid #e5e7eb; padding:6px 10px; }
+  th { background:#f9fafb; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:.85em; }
+  pre code { display:block; padding:12px; overflow-x:auto; }
+  a { color:#bf0000; }
+  .cta { background:#fdf7f7; border:1px solid #f3d6d6; border-radius:8px; padding:14px 18px; margin:24px 0 0; }
+  .related { margin-top:24px; font-size:.9rem; }
+  footer { max-width:760px; margin:16px auto 40px; padding:0 16px; font-size:.75rem; color:#6b7280; }
+</style>
+</head>
+<body>
+<header><a href="../index.html">← RakuCSV Studio(無料ツール)に戻る</a></header>
+<main>
+<article>
+<h1>楽天のジャンルID（全商品ディレクトリID）の調べ方と「存在しない・古い」エラーの直し方</h1>
+<p>楽天市場（RMS）にnormal-item.csvをアップロードしたら、「ジャンルIDが存在しない」「ジャンルIDが古い」という趣旨のエラーで弾かれた——。</p>
+<p>先に結論です。<strong>このエラーの原因は、廃止・統合された古いジャンルIDを指定していること</strong>です。楽天のジャンル（全商品ディレクトリ）は定期的に再編されており、昔のCSVやネット上の古い情報のIDはそのまま使えません。<strong>RMSの「ディレクトリID検索」で最新のIDを調べて差し替えれば直ります。</strong></p>
+<p>この記事では、ジャンルIDの基本、古いIDが弾かれる仕組み、最新IDの調べ方、そしてブラウザだけでできる簡易照合のTipまで解説します。</p>
+<h2>ジャンルID（全商品ディレクトリID）とは</h2>
+<p>ジャンルIDは、正式には<strong>全商品ディレクトリID</strong>と呼ばれる、楽天市場のカテゴリ階層上の位置を示す<strong>半角数字6桁</strong>のIDです。normal-item.csvでは <code>ジャンルID</code> カラムに入力し、商品登録時の必須項目です。</p>
+<p>ジャンルIDは検索やランキングの分類に使われるだけでなく、<strong>そのジャンルでカタログID（JANコード）や必須商品属性（ブランド名・メーカー型番・代表カラー等）が要求されるかどうか</strong>もジャンルIDによって決まります。つまり、CSV作成の起点になる重要項目です。</p>
+<h2>なぜ古いIDだと「存在しない」エラーになるのか</h2>
+<p>楽天のジャンル階層は固定ではなく、<strong>ジャンルの新設・統合・廃止による再編</strong>が行われます。再編で廃止されたIDは無効になるため、CSVに書いてアップロードすると「存在しない／古い」として弾かれます。</p>
+<p>実例を挙げると、電子ピアノのジャンルIDは、かつて使われていた <strong><code>510920</code> が古いIDとなり、現在は <code>211219</code> が正しいID</strong>です（本記事執筆時点。最新はRMSでご確認ください）。古いIDは「少し前まで使えていた」だけに、手元の資料を信じて何度もアップロードし直してしまいがちですが、データ側をいくら見直しても直りません。まずIDそのものの有効性を疑ってください。</p>
+<h2>最新のジャンルIDを調べる手順（RMSのディレクトリID検索）</h2>
+<p>正攻法は、RMSの<strong>ディレクトリID検索</strong>で最新のIDを確認することです。</p>
+<ol>
+<li>RMSにログインし、ディレクトリID検索（商品登録・編集まわりのメニュー）を開く</li>
+<li>キーワード（例：電子ピアノ）で検索するか、ジャンル階層を上位からたどる</li>
+<li>該当ジャンルの<strong>最下層のディレクトリID</strong>を確認し、CSVの <code>ジャンルID</code> カラムに転記する</li>
+</ol>
+<p>このとき、途中の階層ではなく、<strong>商品に最も近い末端のジャンル</strong>を選ぶのが基本です。どの階層を選ぶべきか迷ったら、同種の商品を売っている競合店舗の商品がどのジャンルに属しているかが参考になります。RMSの画面構成は変更されることがあるため、メニューの位置が異なる場合はRMS内のヘルプで最新情報を確認してください。</p>
+<h2>Tip：ランキングURLでジャンルIDを簡易照合する</h2>
+<p>「このIDが今も有効か」「どのジャンル名を指しているのか」だけをサッと確かめたいときは、ブラウザで楽天ランキングのURLを開く方法が手軽です。</p>
+<pre><code>https://ranking.rakuten.co.jp/daily/&lt;ジャンルID&gt;/
+</code></pre>
+<p>例えば <code>https://ranking.rakuten.co.jp/daily/211219/</code> のようにIDを埋めてアクセスし、<strong>表示されたランキングページのジャンル名が意図した商品ジャンルと一致するか</strong>を見るだけです。意図と違うジャンル名が表示されたり、ページが正しく表示されなかったりする場合は、そのIDをCSVに使うのは避け、RMSのディレクトリID検索で調べ直してください。</p>
+<p>あくまで簡易照合であり、最終確認はRMSで行うのが正です。</p>
+<h2>過去のCSVを流用するときの注意</h2>
+<p>ジャンルIDエラーが特に起きやすいのが、<strong>過去に登録が通ったCSVをコピーして新商品を作るケース</strong>です。</p>
+<ul>
+<li>過去CSVのジャンルIDは、その後のジャンル再編で<strong>廃止済みになっている可能性</strong>があります。「前回通ったから大丈夫」は通用しません</li>
+<li>ジャンルを差し替えた場合、<strong>そのジャンルで必須になるカタログIDや商品属性の要件も変わる</strong>ことがあります。ジャンルIDだけ直して他のエラーが噴き出すのはこのためです</li>
+<li>期間の空いた流用ほど危険です。流用時は必ずジャンルIDの有効性を確認してからアップロードしてください</li>
+</ul>
+<h2>CSV全体をまとめて点検できる無料ツール</h2>
+<p>ジャンルIDを直してアップロードし直したら、今度は文字コードやヘッダー名、カタログIDの入力漏れなど、別のエラーで弾かれる——CSV登録ではよくある展開です。</p>
+<p>無料のブラウザツール <strong><a href="https://pshun09156-collab.github.io/rakucsv-studio/">RakuCSV Studio</a></strong> の点検機能を使うと、手元のnormal-item.csvを読み込ませるだけで、文字コード（UTF-8保存）の問題、ヘッダー名の誤記、環境依存文字の混入、カタログID等の必須項目の欠落を自動で診断し、修正済みのCSVをダウンロードできます。ブラウザ上で動くのでインストールは不要です。アップロード前の最終チェックとして通しておくと、やり直しの回数を減らせます。</p>
+<h2>さらに詳しく：CSV登録を「一発で通す」ために</h2>
+<p>ジャンルIDはCSV登録でつまずくポイントの1つにすぎません。その先には「カタログIDもしくはカタログIDなしの理由が必須」「必須の商品属性が未入力」「スマホ用説明文のタグ制限」など、系統の異なるエラーが控えています。</p>
+<p>エラーの全パターンと対策、マルチSKUの組み方までまとめた有料ガイド <strong>「楽天市場のCSV商品登録を『一発で通す』完全攻略ガイド」（¥980）</strong> を公開しています。何度もアップロードし直す時間を短縮したい方はこちらをどうぞ。</p>
+<p>→ <a href="https://note.com/midas_works/n/ncad7544d90c8">完全攻略ガイドを読む</a></p>
+<hr />
+<p>※本記事は非公式であり、楽天グループ株式会社とは無関係です。ジャンル構成・仕様は変更される場合があるため、最新情報はRMSでご確認ください。</p>
+<div class="cta">🛠 <a href="../index.html">RakuCSV Studio</a> — 楽天CSVをブラウザで作成・点検できる無料ツール(データ送信なし・登録不要)</div>
+<div class="related"><strong>関連記事</strong><ul><li><a href="rakuten-csv-error-all-items.html">楽天CSVで「項目名が正しくありません」が全項目に出るときの直し方（原因は1つ）</a></li><li><a href="rakuten-multi-sku-csv.html">楽天のマルチSKU（バリエーション）商品をCSVで登録する方法｜定義行とSKU行の作り方</a></li><li><a href="rakuten-catalog-id-error.html">楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法｜JANコードがないときの理由コードの選び方</a></li></ul></div>
+</article>
+</main>
+<footer><p>© 2026 Midas Works — 本サイトは非公式であり、楽天グループ株式会社とは無関係です。</p></footer>
+</body>
+</html>

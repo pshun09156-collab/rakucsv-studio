@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法｜JANコードがないときの理由コードの選び方 | RakuCSV Studio</title>
+<meta name="description" content="楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法。理由コード1〜5の選び方、セット商品の二次エラーの罠と回避策、JANコードの調べ方を解説。">
+<link rel="canonical" href="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-catalog-id-error.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法｜JANコードがないときの理由コードの選び方">
+<meta property="og:description" content="楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法。理由コード1〜5の選び方、セット商品の二次エラーの罠と回避策、JANコードの調べ方を解説。">
+<meta property="og:url" content="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-catalog-id-error.html">
+<meta name="twitter:card" content="summary">
+<style>
+  body { margin:0; font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; background:#f6f7f9; color:#1f2937; line-height:1.85; }
+  header { background:#bf0000; color:#fff; padding:14px 16px; }
+  header a { color:#fff; text-decoration:none; font-weight:700; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 40px; }
+  article { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:28px; }
+  h1 { font-size:1.45rem; line-height:1.5; }
+  h2 { font-size:1.15rem; border-left:4px solid #bf0000; padding-left:10px; margin-top:2em; }
+  h3 { font-size:1rem; margin-top:1.6em; }
+  table { border-collapse:collapse; font-size:.85rem; margin:1em 0; display:block; overflow-x:auto; white-space:nowrap; }
+  th,td { border:1px solid #e5e7eb; padding:6px 10px; }
+  th { background:#f9fafb; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:.85em; }
+  pre code { display:block; padding:12px; overflow-x:auto; }
+  a { color:#bf0000; }
+  .cta { background:#fdf7f7; border:1px solid #f3d6d6; border-radius:8px; padding:14px 18px; margin:24px 0 0; }
+  .related { margin-top:24px; font-size:.9rem; }
+  footer { max-width:760px; margin:16px auto 40px; padding:0 16px; font-size:.75rem; color:#6b7280; }
+</style>
+</head>
+<body>
+<header><a href="../index.html">← RakuCSV Studio(無料ツール)に戻る</a></header>
+<main>
+<article>
+<h1>楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法｜JANコードがないときの理由コードの選び方</h1>
+<p>楽天市場（RMS）にnormal-item.csvをアップロードしたら、「カタログIDもしくはカタログIDなしの理由が必須です」というエラーで弾かれた——。</p>
+<p>先に結論です。対処は<strong>二択</strong>です。</p>
+<ol>
+<li><strong>JANコードがある商品</strong> → <code>カタログID</code> 列にJANコード（13桁等）を入れる</li>
+<li><strong>JANコードがない商品</strong> → <code>カタログIDなしの理由</code> 列に理由コード（1〜5の半角数字）を入れる</li>
+</ol>
+<p>どちらか一方が入っていればこのエラーは解消します。ただし、<strong>理由コードの選び方には罠があり、特に「1：セット商品」を安易に選ぶと「セット商品用カタログIDは必須です」という二次エラーで再び止まります。</strong></p>
+<p>この記事では、理由コード1〜5の一覧と選び方、セット商品の罠の回避策、JANコードの調べ方、そしてこのエラーとセットで出やすい必須商品属性のエラーまで解説します。</p>
+<h2>なぜこのエラーが出るのか：SKUごとにカタログ情報が必須のジャンルがある</h2>
+<p>楽天では、ジャンルによって<strong>SKUごとにカタログIDの登録が必須</strong>になっています。カタログIDとは実質的に<strong>JANコード</strong>のことで、楽天が商品を製品カタログと照合するために使います。</p>
+<p>該当ジャンルでは、CSVのSKU行に次のいずれかが入っていないとアップロードが通りません。</p>
+<ul>
+<li><code>カタログID</code>（JANコード等、文字列30桁以内）</li>
+<li><code>カタログIDなしの理由</code>（1〜5の半角数字）</li>
+</ul>
+<p>両方空のままアップロードすると「カタログIDもしくはカタログIDなしの理由が必須です」になります。マルチSKU商品の場合は<strong>SKU行ごとに</strong>要求される点にも注意してください。1行だけ入力漏れがあっても弾かれます。</p>
+<h2>カタログIDなしの理由コード1〜5の一覧と選び方</h2>
+<p><code>カタログIDなしの理由</code> に入れられるコードは次の5つです。</p>
+<table>
+<thead>
+<tr>
+<th>コード</th>
+<th>意味</th>
+<th>使いどころ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>セット商品</td>
+<td>複数商品の詰め合わせ等。<strong>★二次エラーの罠あり（後述）</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>サービス商品</td>
+<td>役務・チケット等、モノでない商品</td>
+</tr>
+<tr>
+<td>3</td>
+<td>当店オリジナル商品</td>
+<td>自社企画商品でJANを取得していない場合</td>
+</tr>
+<tr>
+<td>4</td>
+<td>項目選択肢別在庫商品</td>
+<td>旧・項目選択肢別在庫からの移行商品等</td>
+</tr>
+<tr>
+<td>5</td>
+<td>該当商品コードなし</td>
+<td>JANが存在しない・不明な場合の受け皿</td>
+</tr>
+</tbody>
+</table>
+<p>選び方はシンプルで、<strong>JANが本当に存在しない理由を正直に選ぶ</strong>のが基本です。自社企画品なら3、モノでないなら2、それ以外でJANがないなら5が受け皿になります。</p>
+<h2>罠：理由「1：セット商品」を選ぶと「セット商品用カタログIDは必須です」になる</h2>
+<p>一番ハマりやすいのがここです。<code>カタログIDなしの理由</code> に <strong>1（セット商品）を入れると、今度は <code>セット商品用カタログID</code> 列の入力が必須</strong>になり、「セット商品用カタログIDは必須です」という二次エラーが出ます。理由1は「カタログIDを免除するコード」ではなく、「セット専用のカタログIDを別途要求するコード」なのです。</p>
+<h3>回避策：実体が同じ商品なら本体と同じJANを入れる</h3>
+<p>実戦的な回避策は、<strong>「本体＋特典（おまけ）」のように実体が同一商品なら、特典付きSKUにも本体と同じJANを <code>カタログID</code> に入れる</strong>ことです。これで理由1のセット扱い自体を回避でき、二次エラーも発生しません。</p>
+<p>たとえば「電子ピアノ本体」と「電子ピアノ＋お手入れクロス特典付き」の2SKUなら、どちらのSKUにも本体のJANを入れるのが簡単です。</p>
+<p>本当に複数商品の詰め合わせで本体JANが使えない場合は、理由1＋<code>セット商品用カタログID</code> の入力が必要になります。運用が複雑になるため、自社企画のセットであれば「3：当店オリジナル商品」が使えないかも検討してください。判断に迷う場合は、RMSで最新のガイドラインを確認するのが確実です。</p>
+<h2>JANコードの調べ方</h2>
+<p>手元の商品のJANが分からない場合は、次の順で確認します。</p>
+<ol>
+<li><strong>商品パッケージのバーコード</strong>：バーコード下の13桁（または8桁）の数字がJANコードです</li>
+<li><strong>メーカーの公式カタログ（PDF）や商品ページ</strong>：型番で検索すると記載されていることが多いです</li>
+<li><strong>大手小売サイトの商品ページ</strong>：型番で検索し、商品仕様欄のJAN表記を確認します</li>
+</ol>
+<p>いずれの場合も、<strong>型番とカラーが完全に一致しているか</strong>を確認してから転記してください。同じ型番でもカラー違いでJANが異なるのが普通です。</p>
+<h2>あわせて出やすいエラー：必須の商品属性（ブランド名・メーカー型番・代表カラー）</h2>
+<p>カタログIDのエラーを直した後に、「必須の商品属性を指定してください」というエラーに進むケースがよくあります。ジャンルによっては、<code>ブランド名</code>・<code>メーカー型番</code>・<code>代表カラー</code> などの商品属性が<strong>SKU単位で必須</strong>だからです。</p>
+<p>商品属性は「項目・値・単位」の3点セットのカラムで設定します。</p>
+<pre><code>商品属性（項目）1 = ブランド名      商品属性（値）1 = ヤマハ
+商品属性（項目）2 = メーカー型番    商品属性（値）2 = YDP-166B
+商品属性（項目）3 = 代表カラー      商品属性（値）3 = ブラック
+</code></pre>
+<p>注意点は2つです。ヘッダー名は <code>商品属性（項目）1</code> のように<strong>カッコが先・番号が後</strong>（<code>商品属性1（項目）</code> は誤り）。そして<strong>ブランド名と代表カラーは楽天のマスター値と照合される</strong>ため、弾かれた場合はエラー文が指定する標準的な表記（代表カラーならブラック／ホワイト／ブラウン等）に合わせてください。</p>
+<h2>カタログIDの入力漏れを自動チェックできる無料ツール</h2>
+<p>マルチSKU商品が増えてくると、「どのSKU行でカタログIDと理由の両方が空になっているか」を目視で探すのは大変です。</p>
+<p>無料のブラウザツール <strong><a href="https://pshun09156-collab.github.io/rakucsv-studio/">RakuCSV Studio</a></strong> の点検機能を使うと、手元のnormal-item.csvを読み込ませるだけで、<strong>カタログID（または理由コード）が欠落しているSKU行を自動で検出</strong>できます。あわせて、文字コード（UTF-8保存）やヘッダー名の誤記、環境依存文字といった別系統のエラー要因も同時に診断し、修正済みのCSVをダウンロードできます。ブラウザ上で動くのでインストールは不要です。</p>
+<h2>さらに詳しく：CSV登録を「一発で通す」ために</h2>
+<p>カタログIDを直しても、その先には「ジャンルIDが古い」「必須商品属性のマスター値照合」「スマホ用説明文のタグ制限」など、別系統のエラーが控えていることがあります。</p>
+<p>エラーの全パターンと対策、マルチSKUの組み方までまとめた有料ガイド <strong>「楽天市場のCSV商品登録を『一発で通す』完全攻略ガイド」（¥980）</strong> を公開しています。アップロードのやり直しを最短で終わらせたい方はこちらをどうぞ。</p>
+<p>→ <a href="https://note.com/midas_works/n/ncad7544d90c8">完全攻略ガイドを読む</a></p>
+<hr />
+<p>※本記事は非公式であり、楽天グループ株式会社とは無関係です。仕様は変更される場合があるため、最新情報はRMSでご確認ください。</p>
+<div class="cta">🛠 <a href="../index.html">RakuCSV Studio</a> — 楽天CSVをブラウザで作成・点検できる無料ツール(データ送信なし・登録不要)</div>
+<div class="related"><strong>関連記事</strong><ul><li><a href="rakuten-csv-error-all-items.html">楽天CSVで「項目名が正しくありません」が全項目に出るときの直し方（原因は1つ）</a></li><li><a href="rakuten-multi-sku-csv.html">楽天のマルチSKU（バリエーション）商品をCSVで登録する方法｜定義行とSKU行の作り方</a></li><li><a href="rakuten-genre-id.html">楽天のジャンルID（全商品ディレクトリID）の調べ方と「存在しない・古い」エラーの直し方</a></li></ul></div>
+</article>
+</main>
+<footer><p>© 2026 Midas Works — 本サイトは非公式であり、楽天グループ株式会社とは無関係です。</p></footer>
+</body>
+</html>
