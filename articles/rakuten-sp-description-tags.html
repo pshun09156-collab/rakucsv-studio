@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天CSVの「スマートフォン用商品説明文に許可されないHTMLタグ」エラーの直し方｜div・span・styleが使えない理由 | RakuCSV Studio</title>
+<meta name="description" content="楽天CSVの「スマートフォン用商品説明文に許可されないHTMLタグ」エラーの直し方。div/span/h2/table/style属性が使えない理由、説明文3種の違い、10240byte上限と分割テクを解説。">
+<link rel="canonical" href="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-sp-description-tags.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="楽天CSVの「スマートフォン用商品説明文に許可されないHTMLタグ」エラーの直し方｜div・span・styleが使えない理由">
+<meta property="og:description" content="楽天CSVの「スマートフォン用商品説明文に許可されないHTMLタグ」エラーの直し方。div/span/h2/table/style属性が使えない理由、説明文3種の違い、10240byte上限と分割テクを解説。">
+<meta property="og:url" content="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-sp-description-tags.html">
+<meta name="twitter:card" content="summary">
+<style>
+  body { margin:0; font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; background:#f6f7f9; color:#1f2937; line-height:1.85; }
+  header { background:#bf0000; color:#fff; padding:14px 16px; }
+  header a { color:#fff; text-decoration:none; font-weight:700; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 40px; }
+  article { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:28px; }
+  h1 { font-size:1.45rem; line-height:1.5; }
+  h2 { font-size:1.15rem; border-left:4px solid #bf0000; padding-left:10px; margin-top:2em; }
+  h3 { font-size:1rem; margin-top:1.6em; }
+  table { border-collapse:collapse; font-size:.85rem; margin:1em 0; display:block; overflow-x:auto; white-space:nowrap; }
+  th,td { border:1px solid #e5e7eb; padding:6px 10px; }
+  th { background:#f9fafb; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:.85em; }
+  pre code { display:block; padding:12px; overflow-x:auto; }
+  a { color:#bf0000; }
+  .cta { background:#fdf7f7; border:1px solid #f3d6d6; border-radius:8px; padding:14px 18px; margin:24px 0 0; }
+  .related { margin-top:24px; font-size:.9rem; }
+  footer { max-width:760px; margin:16px auto 40px; padding:0 16px; font-size:.75rem; color:#6b7280; }
+</style>
+</head>
+<body>
+<header><a href="../index.html">← RakuCSV Studio(無料ツール)に戻る</a></header>
+<main>
+<article>
+<h1>楽天CSVの「スマートフォン用商品説明文に許可されないHTMLタグ」エラーの直し方｜div・span・styleが使えない理由</h1>
+<p>楽天市場（RMS）にnormal-item.csvをアップロードしたら、「スマートフォン用商品説明文に許可されないHTMLタグ "div" が含まれています」「許可されない "style" 属性が含まれています」といったエラーで弾かれた——。</p>
+<p>先に結論です。<strong>スマートフォン用商品説明文は、PC用の説明文と比べてHTMLタグの制限が格段に厳しく、<code>div</code> / <code>span</code> / <code>h2</code> / <code>table</code> といったタグや <code>style</code> 属性が使えません。</strong> 対処法は、PC用のHTMLをそのままコピーするのをやめ、<strong>スマホ用は <code>&lt;br&gt;</code> を中心としたプレーンなテキストで作り直す</strong>ことです。</p>
+<p>この記事では、説明文カラム3種の違い、スマホ用の安全な書き方、そして見落としがちな10240byte上限と分割テクニックまで解説します。</p>
+<h2>結論：スマホ用だけタグ制限が厳しい</h2>
+<p>このエラーが出るのは、ほぼ例外なく <strong>PC用商品説明文のHTMLをそのままスマートフォン用商品説明文にコピーした</strong>ケースです。</p>
+<p>PC用の説明文は比較的寛容で、<code>table</code> によるレイアウトやインラインの <code>style</code> 指定も通ります。そのため「PC用で通ったHTMLだからスマホ用でも通るはず」と考えてしまいがちですが、スマホ用は別ルールです。レイアウト目的のタグや装飾指定は受け付けられません。</p>
+<p>つまり、<strong>同じ内容でもPC用とスマホ用は別々に書く</strong>必要があります。データの中身（商品情報そのもの）を見直しても直らないので、まずコピー元がPC用HTMLでないかを疑ってください。</p>
+<h2>説明文カラムは3種類ある：それぞれの違い</h2>
+<p>normal-item.csvには説明文系のカラムが3つあります。役割と制限が異なるので、まず違いを押さえます。</p>
+<table>
+<thead>
+<tr>
+<th>カラム名</th>
+<th>表示先</th>
+<th>HTMLの自由度</th>
+<th>byte上限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PC用商品説明文</td>
+<td>PC版商品ページ</td>
+<td>比較的寛容（table・インラインstyle可）</td>
+<td>10240</td>
+</tr>
+<tr>
+<td>スマートフォン用商品説明文</td>
+<td>スマホ版商品ページ</td>
+<td><strong>厳しい（div/span/h2/table・style属性は不可）</strong></td>
+<td>10240</td>
+</tr>
+<tr>
+<td>PC用販売説明文</td>
+<td>PC版商品ページの下部</td>
+<td>比較的寛容（PC用商品説明文と同様）</td>
+<td>10240</td>
+</tr>
+</tbody>
+</table>
+<p>いずれのカラムも必須項目ではありませんが、商品ページの訴求を担う部分なので実質的には必ず書くことになります。</p>
+<p>なお、PC用が寛容といっても無制限ではありません。<strong>外部CSSファイルや外部JavaScriptの読み込みは使えません</strong>。装飾はインラインで完結させる必要があります。</p>
+<h2>スマートフォン用商品説明文の書き方：<code>&lt;br&gt;</code> 中心で組み立てる</h2>
+<p>スマホ用は「HTMLでレイアウトを組む場所」ではなく、「改行の入ったテキストを置く場所」と考えるのが実務的です。</p>
+<h3>避けるべきタグ・属性</h3>
+<p>エラーの原因になりやすいのは次のものです。</p>
+<ul>
+<li><code>&lt;div&gt;</code> / <code>&lt;span&gt;</code>：レイアウト・装飾用のタグ</li>
+<li><code>&lt;h2&gt;</code> などの見出しタグ</li>
+<li><code>&lt;table&gt;</code> / <code>&lt;tr&gt;</code> / <code>&lt;td&gt;</code>：表組み</li>
+<li><code>style</code> 属性（<code>&lt;p style="..."&gt;</code> のようなインライン指定を含む）</li>
+</ul>
+<p>PC用から流用したHTMLには、これらがほぼ確実に含まれています。エディタの置換機能で機械的に洗い出すか、後述のツールで検出してください。</p>
+<h3>表組みをやめて改行で並べる</h3>
+<p>PC用でスペック表を <code>&lt;table&gt;</code> で組んでいる場合、スマホ用では改行区切りの箇条書きに置き換えます。</p>
+<pre><code>■商品仕様&lt;br&gt;
+メーカー：ヤマハ&lt;br&gt;
+型番：YDP-166B&lt;br&gt;
+カラー：ブラック&lt;br&gt;
+&lt;br&gt;
+■セット内容&lt;br&gt;
+本体、専用スタンド、取扱説明書&lt;br&gt;
+</code></pre>
+<p>見出しも <code>&lt;h2&gt;</code> ではなく、<code>■</code> や <code>【】</code> などの記号で代用します。装飾は減りますが、そもそもスマホの画面幅では横長の表は読みにくく、改行区切りのほうが読みやすいことも多いです。</p>
+<h3>説明文の中の <code>&lt;img&gt;</code> に注意</h3>
+<p>説明文HTMLの中に <code>&lt;img&gt;</code> で画像を入れている場合、その画像は<strong>CSVの商品画像カラムとは別物</strong>です。公開ページで表示させるには、R-Cabinetにアップロード済みの正しいURL／パスを指定する必要があります。画像を使わない商品でテンプレートを流用すると、<code>&lt;img&gt;</code> だけが残って画像切れになることがあるので、使わないなら説明文からも除去してください。</p>
+<h2>見落としがちな10240byte上限と分割テクニック</h2>
+<p>タグ制限と並んでつまずきやすいのが、<strong>各説明文カラムの10240byte上限</strong>です。</p>
+<h3>byte数の考え方</h3>
+<p>上限は文字数ではなく<strong>byte数</strong>です。normal-item.csvはShift-JIS（cp932）で保存するため、全角文字は1文字あたり2byte換算になります。単純計算で全角約5,000文字が目安ですが、<strong>HTMLタグも当然byte数に含まれる</strong>点に注意してください。装飾の多いHTMLは、見た目の文章量よりずっと早く上限に達します。</p>
+<h3>PC用は「商品説明文」と「販売説明文」に分割できる</h3>
+<p>PC用の説明文が10240byteを超えてしまう場合、<strong>PC用商品説明文に前半、PC用販売説明文に後半</strong>を入れて分割するのが定番の対処です。PC用販売説明文は商品ページの下部に表示されるため、上から読んだときに自然につながります。</p>
+<p>分割の切れ目は、「商品の訴求・特徴」までを前半、「スペック表・注意事項・配送について」などを後半、といった区切りにすると読み手にも自然です。</p>
+<p>スマホ用は分割先のカラムがないため、そもそも情報を絞って書く必要があります。タグを減らして <code>&lt;br&gt;</code> 中心にするだけでもbyte数はかなり削れるので、この点でもプレーンな書き方が有利です。</p>
+<h2>あわせて注意：ダブルクォートのエスケープ</h2>
+<p>CSVのセル内にHTMLを書くとき、<strong>HTML中の <code>"</code> は <code>""</code> と二重にしてエスケープ</strong>します（CSVの標準的なルールです）。やってはいけないのが、<code>"</code> を <code>&amp;quot;</code> に一括置換することです。一見安全そうですが、インラインstyleなどのHTMLが壊れて意図した表示になりません。</p>
+<p>また、説明文に ™ ® © ①②③ や絵文字などの<strong>環境依存文字</strong>が混ざっていると、cp932で表現できずアップロード時に文字化けとして弾かれます。「①→1.」「©→(c)」のように置換するか、削除してください。</p>
+<h2>スマホ用説明文の禁止タグを自動検出できる無料ツール</h2>
+<p>説明文が長くなるほど、<code>div</code> や <code>style</code> の消し忘れを目視で探すのは現実的ではなくなります。商品数が多ければなおさらです。</p>
+<p>無料のブラウザツール <strong><a href="https://pshun09156-collab.github.io/rakucsv-studio/">RakuCSV Studio</a></strong> の点検機能を使うと、手元のnormal-item.csvを読み込ませるだけで、<strong>スマートフォン用商品説明文に含まれる許可されないタグ・属性を自動で検出</strong>できます。あわせて、文字コード（UTF-8保存）の問題、ヘッダー名の誤記、環境依存文字の混入といった別系統のエラー要因も同時に診断し、修正済みのCSVをダウンロードできます。ブラウザ上で動くのでインストールは不要です。</p>
+<h2>さらに詳しく：CSV登録を「一発で通す」ために</h2>
+<p>説明文のタグを直しても、その先には「ジャンルIDが古い」「カタログIDもしくはカタログIDなしの理由が必須」「必須の商品属性が未入力」「画像パスは相対パスでご指定ください」など、系統の異なるエラーが控えています。</p>
+<p>エラーの全パターンと対策、マルチSKUの組み方までまとめた有料ガイド <strong>「楽天市場のCSV商品登録を『一発で通す』完全攻略ガイド」（¥980）</strong> を公開しています。アップロードのやり直しを最短で終わらせたい方はこちらをどうぞ。</p>
+<p>→ <a href="https://note.com/midas_works/n/ncad7544d90c8">完全攻略ガイドを読む</a></p>
+<hr />
+<p>※本記事は非公式であり、楽天グループ株式会社とは無関係です。仕様は変更される場合があるため、最新情報はRMSでご確認ください。</p>
+<div class="cta">🛠 <a href="../index.html">RakuCSV Studio</a> — 楽天CSVをブラウザで作成・点検できる無料ツール(データ送信なし・登録不要)</div>
+<div class="related"><strong>関連記事</strong><ul><li><a href="rakuten-csv-error-all-items.html">楽天CSVで「項目名が正しくありません」が全項目に出るときの直し方（原因は1つ）</a></li><li><a href="rakuten-multi-sku-csv.html">楽天のマルチSKU（バリエーション）商品をCSVで登録する方法｜定義行とSKU行の作り方</a></li><li><a href="rakuten-catalog-id-error.html">楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法｜JANコードがないときの理由コードの選び方</a></li><li><a href="rakuten-genre-id.html">楽天のジャンルID（全商品ディレクトリID）の調べ方と「存在しない・古い」エラーの直し方</a></li><li><a href="rakuten-image-path-error.html">楽天CSVの「画像パスは相対パスでご指定ください」エラーの直し方｜R-Cabinetの相対パスの書き方</a></li><li><a href="rakuten-item-attributes.html">楽天CSVの「必須の商品属性を指定してください」エラーの直し方｜ブランド名・代表カラーがマスター値で弾かれるとき</a></li></ul></div>
+</article>
+</main>
+<footer><p>© 2026 Midas Works — 本サイトは非公式であり、楽天グループ株式会社とは無関係です。</p></footer>
+</body>
+</html>

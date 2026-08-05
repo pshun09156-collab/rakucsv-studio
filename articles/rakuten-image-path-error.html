@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天CSVの「画像パスは相対パスでご指定ください」エラーの直し方｜R-Cabinetの相対パスの書き方 | RakuCSV Studio</title>
+<meta name="description" content="楽天CSVの「画像パスは相対パスでご指定ください」エラーの直し方。R-Cabinetの相対パスの書き方、商品画像とSKU画像の番号ルール、登録は通るのに画像が表示されないケースを解説。">
+<link rel="canonical" href="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-image-path-error.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="楽天CSVの「画像パスは相対パスでご指定ください」エラーの直し方｜R-Cabinetの相対パスの書き方">
+<meta property="og:description" content="楽天CSVの「画像パスは相対パスでご指定ください」エラーの直し方。R-Cabinetの相対パスの書き方、商品画像とSKU画像の番号ルール、登録は通るのに画像が表示されないケースを解説。">
+<meta property="og:url" content="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-image-path-error.html">
+<meta name="twitter:card" content="summary">
+<style>
+  body { margin:0; font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; background:#f6f7f9; color:#1f2937; line-height:1.85; }
+  header { background:#bf0000; color:#fff; padding:14px 16px; }
+  header a { color:#fff; text-decoration:none; font-weight:700; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 40px; }
+  article { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:28px; }
+  h1 { font-size:1.45rem; line-height:1.5; }
+  h2 { font-size:1.15rem; border-left:4px solid #bf0000; padding-left:10px; margin-top:2em; }
+  h3 { font-size:1rem; margin-top:1.6em; }
+  table { border-collapse:collapse; font-size:.85rem; margin:1em 0; display:block; overflow-x:auto; white-space:nowrap; }
+  th,td { border:1px solid #e5e7eb; padding:6px 10px; }
+  th { background:#f9fafb; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:.85em; }
+  pre code { display:block; padding:12px; overflow-x:auto; }
+  a { color:#bf0000; }
+  .cta { background:#fdf7f7; border:1px solid #f3d6d6; border-radius:8px; padding:14px 18px; margin:24px 0 0; }
+  .related { margin-top:24px; font-size:.9rem; }
+  footer { max-width:760px; margin:16px auto 40px; padding:0 16px; font-size:.75rem; color:#6b7280; }
+</style>
+</head>
+<body>
+<header><a href="../index.html">← RakuCSV Studio(無料ツール)に戻る</a></header>
+<main>
+<article>
+<h1>楽天CSVの「画像パスは相対パスでご指定ください」エラーの直し方｜R-Cabinetの相対パスの書き方</h1>
+<p>楽天市場（RMS）にnormal-item.csvをアップロードしたら、「画像パスは相対パスでご指定ください」というエラーで弾かれた——。</p>
+<p>先に結論です。<strong>原因は、商品画像パスに <code>https://</code> から始まるフルURLを入れていること</strong>です。楽天のCSVでは、画像はフルURLではなく <strong><code>/フォルダ名/ファイル名.jpg</code> という相対パス</strong>で指定します。</p>
+<p>そしてもう1つ、前提として押さえておくべき重要な点があります。<strong>画像はあらかじめR-Cabinetにアップロードしておく必要があり、CSVから画像そのものをアップロードすることはできません。</strong> CSVに書くのは「すでにR-Cabinetにある画像の場所」だけです。</p>
+<p>この記事では、相対パスの正しい書き方、画像系カラムの番号ルール、画像を使わない場合の扱い、そして「登録は通るのに画像が表示されない」ケースまで解説します。</p>
+<h2>結論：フルURLではなく相対パスで書く</h2>
+<p>商品画像パスの書き方は次のとおりです。</p>
+<table>
+<thead>
+<tr>
+<th>書き方</th>
+<th>例</th>
+<th>可否</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>フルURL</td>
+<td><code>https://image.rakuten.co.jp/shop/cabinet/item/img01.jpg</code></td>
+<td><strong>不可</strong>（このエラーになる）</td>
+</tr>
+<tr>
+<td>相対パス</td>
+<td><code>/item/img01.jpg</code></td>
+<td>可</td>
+</tr>
+</tbody>
+</table>
+<p>相対パスは、R-Cabinet内のフォルダ構成をそのまま <code>/フォルダ名/ファイル名.jpg</code> の形で書いたものです。ブラウザでR-Cabinetを開き、対象画像が入っているフォルダ名とファイル名を確認して転記してください。</p>
+<p>ブラウザからコピーした画像URLをそのまま貼り付けると、当然フルURLになります。エラーの大半はこのパターンです。</p>
+<h2>前提：画像は先にR-Cabinetへアップロードしておく</h2>
+<p>CSVで商品を一括登録するとき、<strong>画像ファイル自体をCSVと一緒にアップロードすることはできません</strong>。手順は必ず次の順番になります。</p>
+<ol>
+<li>R-Cabinet（またはGOLD）に画像をアップロードする</li>
+<li>アップロード先のフォルダ名・ファイル名を確認する</li>
+<li>その相対パスをnormal-item.csvの画像パスカラムに書く</li>
+<li>CSVをアップロードする</li>
+</ol>
+<p>「CSVに画像ファイル名を書いておけば、あとで画像を上げれば紐づく」という発想は通用しません。画像の準備が先です。</p>
+<p>なお、画像の置き場所として R-Cabinet と GOLD のどちらを使っているかは、<code>商品画像タイプ</code> カラムで <code>cabinet</code> または <code>gold</code> と指定します。</p>
+<h2>画像系カラムの番号ルール：SKU画像だけ番号が付かない</h2>
+<p>画像系のカラムは種類が多く、しかも<strong>番号の付き方が統一されていない</strong>ため、ヘッダー名の誤記で「項目名が正しくありません」と弾かれる原因にもなります。</p>
+<table>
+<thead>
+<tr>
+<th>カラム名</th>
+<th>番号</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>商品画像タイプ1〜24</td>
+<td>あり</td>
+<td><code>cabinet</code> または <code>gold</code></td>
+</tr>
+<tr>
+<td>商品画像パス1〜20</td>
+<td>あり</td>
+<td>相対パス（半角255byte以内）</td>
+</tr>
+<tr>
+<td>商品画像名（ALT）1〜20</td>
+<td>あり</td>
+<td>代替テキスト（255文字以内）</td>
+</tr>
+<tr>
+<td>SKU画像タイプ</td>
+<td><strong>なし</strong></td>
+<td><code>cabinet</code> または <code>gold</code></td>
+</tr>
+<tr>
+<td>SKU画像パス</td>
+<td><strong>なし</strong></td>
+<td>相対パス</td>
+</tr>
+<tr>
+<td>SKU画像名（ALT）</td>
+<td><strong>なし</strong></td>
+<td>代替テキスト</td>
+</tr>
+</tbody>
+</table>
+<p>商品レベルの画像カラムには番号が付きますが、<strong>SKUレベルの画像カラムには番号が付きません</strong>。<code>SKU画像タイプ1</code> と書くのは誤りで、正しくは <code>SKU画像タイプ</code> です。商品画像のほうに番号が付いているせいで、つい揃えて番号を振ってしまうのがよくあるミスです。</p>
+<p>また、白背景画像用に <code>白背景画像タイプ</code> / <code>白背景画像パス</code> というカラムもあります。こちらも番号なしで、パスは同じく相対パスです。</p>
+<h2>画像を使わない場合：画像系カラムはすべて空にする</h2>
+<p>商品ページに画像を使わない、あるいはCSVでは画像を触らずに後からRMSの画面で設定する、というケースもあります。</p>
+<p>その場合は、<strong>画像系のカラムをすべて空にする</strong>のが安全です。中途半端に <code>cabinet</code> だけ入っていて画像パスが空、あるいは逆にパスだけ入っていてタイプが空、といった状態はエラーの原因になります。使わないなら列ごと空、が原則です。</p>
+<p>過去のCSVを流用するときは特に注意してください。前の商品の画像パスが残ったまま新商品を登録すると、まったく関係ない画像が表示されてしまいます。</p>
+<h2>「登録は通るのに画像が表示されない」ケース</h2>
+<p>パスの形式は正しく、CSVのアップロードもエラーなく完了したのに、公開ページで画像が表示されない——という相談もよくあります。主な原因は次のとおりです。</p>
+<h3>原因1：R-Cabinetに実物がない／パスの綴りが違う</h3>
+<p>相対パスの形式が正しくても、その場所に画像が存在しなければ表示されません。フォルダ名・ファイル名の綴り、拡張子（<code>.jpg</code> と <code>.jpeg</code> の違いなど）、大文字小文字を1文字ずつ確認してください。CSVは「形式が正しいパス」を受け付けるので、実在しないパスでも登録自体は通ってしまいます。</p>
+<h3>原因2：説明文HTML内の <code>&lt;img&gt;</code> は別カラム扱い</h3>
+<p>PC用商品説明文やスマートフォン用商品説明文の中に <code>&lt;img&gt;</code> タグで入れた画像は、<strong>商品画像カラムとはまったくの別物</strong>です。商品画像パスを直しても説明文内の画像は直りません。説明文の中の <code>&lt;img&gt;</code> は、その <code>src</code> に書かれたR-Cabinetの正しいURL／パスを個別に見直す必要があります。</p>
+<p>逆に、画像を使わない商品なのに説明文テンプレートを流用して <code>&lt;img&gt;</code> だけが残り、画像切れになるケースもあります。画像を使わないなら説明文からも <code>&lt;img&gt;</code> を除去してください。</p>
+<h3>原因3：CSVそのものが正しく読み込まれていない</h3>
+<p>そもそもCSVをUTF-8で保存していると、ヘッダーが文字化けして全項目が「項目名が正しくありません」で弾かれます。normal-item.csvは <strong>Shift-JIS（cp932）</strong> で保存してください。一部の画像カラムだけがエラーになる場合は、前述の番号ルールなどヘッダー名の誤記を疑います。</p>
+<h2>画像パスの書式ミスを自動チェックできる無料ツール</h2>
+<p>商品数が増えると、「どの行の画像パスがフルURLのままか」「タイプとパスの片方だけ埋まっている行はどれか」を目視で探すのは大変です。</p>
+<p>無料のブラウザツール <strong><a href="https://pshun09156-collab.github.io/rakucsv-studio/">RakuCSV Studio</a></strong> の点検機能を使うと、手元のnormal-item.csvを読み込ませるだけで、<strong>フルURLになっている画像パスを自動で検出</strong>できます。あわせて、文字コード（UTF-8保存）の問題、<code>SKU画像タイプ</code> などのヘッダー名の誤記、環境依存文字の混入、カタログID等の必須項目の欠落も同時に診断し、修正済みのCSVをダウンロードできます。ブラウザ上で動くのでインストールは不要です。</p>
+<h2>さらに詳しく：CSV登録を「一発で通す」ために</h2>
+<p>画像パスを直しても、その先には「ジャンルIDが存在しない・古い」「カタログIDもしくはカタログIDなしの理由が必須」「必須の商品属性（ブランド名・メーカー型番・代表カラー）が未入力」「スマートフォン用商品説明文に許可されないHTMLタグ」など、系統の異なるエラーが控えています。</p>
+<p>エラーの全パターンと対策、マルチSKUの組み方までまとめた有料ガイド <strong>「楽天市場のCSV商品登録を『一発で通す』完全攻略ガイド」（¥980）</strong> を公開しています。何度もアップロードし直す時間を短縮したい方はこちらをどうぞ。</p>
+<p>→ <a href="https://note.com/midas_works/n/ncad7544d90c8">完全攻略ガイドを読む</a></p>
+<hr />
+<p>※本記事は非公式であり、楽天グループ株式会社とは無関係です。仕様は変更される場合があるため、最新情報はRMSでご確認ください。</p>
+<div class="cta">🛠 <a href="../index.html">RakuCSV Studio</a> — 楽天CSVをブラウザで作成・点検できる無料ツール(データ送信なし・登録不要)</div>
+<div class="related"><strong>関連記事</strong><ul><li><a href="rakuten-csv-error-all-items.html">楽天CSVで「項目名が正しくありません」が全項目に出るときの直し方（原因は1つ）</a></li><li><a href="rakuten-multi-sku-csv.html">楽天のマルチSKU（バリエーション）商品をCSVで登録する方法｜定義行とSKU行の作り方</a></li><li><a href="rakuten-catalog-id-error.html">楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法｜JANコードがないときの理由コードの選び方</a></li><li><a href="rakuten-genre-id.html">楽天のジャンルID（全商品ディレクトリID）の調べ方と「存在しない・古い」エラーの直し方</a></li><li><a href="rakuten-sp-description-tags.html">楽天CSVの「スマートフォン用商品説明文に許可されないHTMLタグ」エラーの直し方｜div・span・styleが使えない理由</a></li><li><a href="rakuten-item-attributes.html">楽天CSVの「必須の商品属性を指定してください」エラーの直し方｜ブランド名・代表カラーがマスター値で弾かれるとき</a></li></ul></div>
+</article>
+</main>
+<footer><p>© 2026 Midas Works — 本サイトは非公式であり、楽天グループ株式会社とは無関係です。</p></footer>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天CSVの「必須の商品属性を指定してください」エラーの直し方｜ブランド名・代表カラーがマスター値で弾かれるとき | RakuCSV Studio</title>
+<meta name="description" content="楽天CSVの「必須の商品属性を指定してください」エラーの直し方。商品属性(項目)(値)(単位)の3点セットの書き方と、ブランド名・代表カラーが楽天マスター値照合で弾かれるときの対処法。">
+<link rel="canonical" href="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-item-attributes.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="楽天CSVの「必須の商品属性を指定してください」エラーの直し方｜ブランド名・代表カラーがマスター値で弾かれるとき">
+<meta property="og:description" content="楽天CSVの「必須の商品属性を指定してください」エラーの直し方。商品属性(項目)(値)(単位)の3点セットの書き方と、ブランド名・代表カラーが楽天マスター値照合で弾かれるときの対処法。">
+<meta property="og:url" content="https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-item-attributes.html">
+<meta name="twitter:card" content="summary">
+<style>
+  body { margin:0; font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; background:#f6f7f9; color:#1f2937; line-height:1.85; }
+  header { background:#bf0000; color:#fff; padding:14px 16px; }
+  header a { color:#fff; text-decoration:none; font-weight:700; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 40px; }
+  article { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:28px; }
+  h1 { font-size:1.45rem; line-height:1.5; }
+  h2 { font-size:1.15rem; border-left:4px solid #bf0000; padding-left:10px; margin-top:2em; }
+  h3 { font-size:1rem; margin-top:1.6em; }
+  table { border-collapse:collapse; font-size:.85rem; margin:1em 0; display:block; overflow-x:auto; white-space:nowrap; }
+  th,td { border:1px solid #e5e7eb; padding:6px 10px; }
+  th { background:#f9fafb; }
+  code { background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:.85em; }
+  pre code { display:block; padding:12px; overflow-x:auto; }
+  a { color:#bf0000; }
+  .cta { background:#fdf7f7; border:1px solid #f3d6d6; border-radius:8px; padding:14px 18px; margin:24px 0 0; }
+  .related { margin-top:24px; font-size:.9rem; }
+  footer { max-width:760px; margin:16px auto 40px; padding:0 16px; font-size:.75rem; color:#6b7280; }
+</style>
+</head>
+<body>
+<header><a href="../index.html">← RakuCSV Studio(無料ツール)に戻る</a></header>
+<main>
+<article>
+<h1>楽天CSVの「必須の商品属性を指定してください」エラーの直し方｜ブランド名・代表カラーがマスター値で弾かれるとき</h1>
+<p>楽天市場（RMS）にnormal-item.csvをアップロードしたら、「必須の商品属性（ブランド名／メーカー型番／代表カラー）を指定してください」というエラーで弾かれた——。</p>
+<p>先に結論です。商品属性は <strong><code>項目</code> / <code>値</code> / <code>単位</code> の3点セット</strong>のカラムで設定します。そしてヘッダー名は <strong><code>商品属性（項目）1</code> のようにカッコが先、番号が後</strong>です。<code>商品属性1（項目）</code> と書くと「項目名が正しくありません」で弾かれます。</p>
+<p>さらにもう1つ、値を入れたのに弾かれる場合の原因があります。<strong>ブランド名と代表カラーは楽天のマスター値と照合される</strong>ため、独自の色名やブランド表記は受け付けられません。</p>
+<p>この記事では、商品属性カラムの書き方、マスター値照合の対処法、そしてジャンルごとに必須属性が違う点の確認方法を解説します。</p>
+<h2>結論：商品属性は「項目・値・単位」の3点セット</h2>
+<p>商品属性は、次の3つのカラムを番号で対応させて設定します。</p>
+<table>
+<thead>
+<tr>
+<th>カラム名</th>
+<th>役割</th>
+<th>例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>商品属性（項目）N</td>
+<td>属性の名前</td>
+<td>ブランド名</td>
+</tr>
+<tr>
+<td>商品属性（値）N</td>
+<td>属性の中身</td>
+<td>ヤマハ</td>
+</tr>
+<tr>
+<td>商品属性（単位）N</td>
+<td>値の単位</td>
+<td>cm、kg など（不要なら空）</td>
+</tr>
+</tbody>
+</table>
+<p>N は1〜100まで使えます。同じ番号の「項目」「値」「単位」が1組の属性になる、という構造です。単位が不要な属性（ブランド名など）では単位カラムは空のままで構いません。</p>
+<p>商品属性は<strong>SKUレベルのカラム</strong>です。マルチSKU商品では、SKU行ごとに値を入れる必要があります。</p>
+<h3>ヘッダー名は「カッコが先・番号が後」</h3>
+<p>最も多い誤りがヘッダー名の書き方です。</p>
+<ul>
+<li>誤：<code>商品属性1（項目）</code></li>
+<li>正：<strong><code>商品属性（項目）1</code></strong></li>
+</ul>
+<p><code>商品属性（値）1</code>、<code>商品属性（単位）1</code> も同じ形式です。楽天はヘッダー名の完全一致で列を識別するため、この位置が違うだけでその列が認識されず、「項目名が正しくありません」というエラーになります。</p>
+<p>なお、一部の項目だけでなく<strong>全項目</strong>にエラーが出ている場合は、ヘッダー名ではなく文字コードが原因です。normal-item.csvは Shift-JIS（cp932）で保存してください。</p>
+<h2>記入例：ブランド名・メーカー型番・代表カラー</h2>
+<p>電子ピアノを例にすると、次のようになります。</p>
+<pre><code>商品属性（項目）1 = ブランド名      商品属性（値）1 = ヤマハ
+商品属性（項目）2 = メーカー型番    商品属性（値）2 = YDP-166B
+商品属性（項目）3 = 代表カラー      商品属性（値）3 = ブラック
+</code></pre>
+<p>CSVの1行として見ると、<code>商品属性（項目）1</code> 列に「ブランド名」、<code>商品属性（値）1</code> 列に「ヤマハ」……という形で横に並びます。3つの属性を設定するなら、<code>商品属性（項目）1〜3</code> と <code>商品属性（値）1〜3</code> の計6列を使うことになります。</p>
+<p>マルチSKU商品でカラー違いを扱っている場合、<code>代表カラー</code> の値はSKU行ごとに変わります。ブラックのSKU行には「ブラック」、ホワイトのSKU行には「ホワイト」を入れてください。全行同じ値をコピーしてしまうミスが起きやすいポイントです。</p>
+<h2>値を入れたのに弾かれる：マスター値との照合</h2>
+<p>「項目も値も入れたのに通らない」という場合、原因は<strong>値そのものが楽天のマスター値と一致していない</strong>ことです。</p>
+<p><strong>ブランド名と代表カラーは、楽天が持つマスター値と照合されます。</strong> 商品を製品カタログに正しく紐づけるための仕組みなので、店舗が自由に文字列を決められるわけではありません。</p>
+<h3>独自の色名は標準色名に寄せる</h3>
+<p>つまずきやすいのが代表カラーです。商品名やパッケージに書かれた色名をそのまま入れても、マスター値になければ弾かれます。</p>
+<ul>
+<li>「マットブラック」「ピアノブラック」「墨黒」→ <strong>ブラック</strong></li>
+<li>「オフホワイト」「アイボリーホワイト」→ <strong>ホワイト</strong></li>
+<li>「ダークブラウン」「ウォルナット」→ <strong>ブラウン</strong></li>
+</ul>
+<p>代表カラーには <strong>ブラック／ホワイト／ブラウン／ベージュ</strong> といった標準的な色名を使うのが基本です。商品名や説明文では「マットブラック」という訴求力のある表記を使い、代表カラー属性だけは標準色名にする、という使い分けで問題ありません。属性値は検索・絞り込みのための分類であって、キャッチコピーではないと考えると整理しやすいです。</p>
+<p>ブランド名も同様で、「YAMAHA」「ヤマハ株式会社」など表記ゆれのある書き方より、マスターに登録されている表記に合わせる必要があります。</p>
+<h3>エラー文の指定に従うのが一番早い</h3>
+<p>マスター値の一覧を自力で探すより確実なのは、<strong>エラーメッセージが指定している表記にそのまま合わせる</strong>ことです。楽天のエラーは、どの属性が問題か、どういった値が想定されているかを示してくれることが多く、その指定どおりに直すのが最短ルートになります。</p>
+<p>推測で何度も書き換えてアップロードし直すより、エラー文を読み込むほうが結果的に早く終わります。</p>
+<h2>必須属性はジャンルごとに違う：RMSで確認する</h2>
+<p>ここが重要な前提です。<strong>どの商品属性が必須になるかは、ジャンル（全商品ディレクトリ）によって決まります。</strong></p>
+<ul>
+<li>あるジャンルでは <code>ブランド名</code> と <code>メーカー型番</code> が必須</li>
+<li>別のジャンルでは <code>代表カラー</code> も必須</li>
+<li>ジャンルによっては商品属性が必須でないこともある</li>
+</ul>
+<p>したがって、「ブランド名・メーカー型番・代表カラーを入れておけば万能」という汎用テンプレートは作れません。登録しようとしているジャンルで<strong>何が必須なのかをRMSで確認する</strong>のが正攻法です。</p>
+<p>このジャンル依存性は、次の2つの状況で特に効いてきます。</p>
+<h3>ジャンルIDを差し替えたとき</h3>
+<p>ジャンルIDが古くて弾かれ、新しいIDに差し替えた——という場面では、<strong>必須属性の要件も一緒に変わっている可能性</strong>があります。ジャンルIDを直したら別のエラーが噴き出す、という展開はこれが原因です。</p>
+<h3>過去のCSVを流用したとき</h3>
+<p>前回登録が通ったCSVをコピーして別ジャンルの商品を作ると、属性が足りずに弾かれます。「前回通ったから大丈夫」は通用しません。流用時はジャンルIDと必須属性の両方を確認してください。</p>
+<p>なお、カタログID（JANコード）が必須かどうかもジャンルによって決まります。商品属性のエラーとカタログIDのエラーはセットで出やすいので、あわせて確認しておくと手戻りが減ります。</p>
+<h2>商品属性の入力漏れを自動チェックできる無料ツール</h2>
+<p>SKU数が増えると、「どのSKU行で属性値が空になっているか」「ヘッダー名の番号の位置が正しいか」を目視で確認するのは現実的ではなくなります。</p>
+<p>無料のブラウザツール <strong><a href="https://pshun09156-collab.github.io/rakucsv-studio/">RakuCSV Studio</a></strong> の点検機能を使うと、手元のnormal-item.csvを読み込ませるだけで、<strong><code>商品属性1（項目）</code> のようなヘッダー名の誤記や、属性値が欠落しているSKU行を自動で検出</strong>できます。あわせて、文字コード（UTF-8保存）の問題、環境依存文字の混入、カタログIDの入力漏れ、画像パスの書式ミスといった別系統のエラー要因も同時に診断し、修正済みのCSVをダウンロードできます。ブラウザ上で動くのでインストールは不要です。</p>
+<p>ただし、マスター値との照合そのものは楽天側で行われるため、値が正しいかどうかは最終的にRMSへのアップロードで確認することになります。ツールで形式面のエラーを潰しておけば、マスター値の調整に集中できます。</p>
+<h2>さらに詳しく：CSV登録を「一発で通す」ために</h2>
+<p>商品属性を直しても、その先には「ジャンルIDが存在しない・古い」「カタログIDもしくはカタログIDなしの理由が必須」「画像パスは相対パスでご指定ください」「スマートフォン用商品説明文に許可されないHTMLタグ」など、系統の異なるエラーが控えています。</p>
+<p>エラーの全パターンと対策、マルチSKUの組み方までまとめた有料ガイド <strong>「楽天市場のCSV商品登録を『一発で通す』完全攻略ガイド」（¥980）</strong> を公開しています。アップロードのやり直しを最短で終わらせたい方はこちらをどうぞ。</p>
+<p>→ <a href="https://note.com/midas_works/n/ncad7544d90c8">完全攻略ガイドを読む</a></p>
+<hr />
+<p>※本記事は非公式であり、楽天グループ株式会社とは無関係です。ジャンル構成・必須属性・仕様は変更される場合があるため、最新情報はRMSでご確認ください。</p>
+<div class="cta">🛠 <a href="../index.html">RakuCSV Studio</a> — 楽天CSVをブラウザで作成・点検できる無料ツール(データ送信なし・登録不要)</div>
+<div class="related"><strong>関連記事</strong><ul><li><a href="rakuten-csv-error-all-items.html">楽天CSVで「項目名が正しくありません」が全項目に出るときの直し方（原因は1つ）</a></li><li><a href="rakuten-multi-sku-csv.html">楽天のマルチSKU（バリエーション）商品をCSVで登録する方法｜定義行とSKU行の作り方</a></li><li><a href="rakuten-catalog-id-error.html">楽天CSVの「カタログIDもしくはカタログIDなしの理由が必須です」エラーの対処法｜JANコードがないときの理由コードの選び方</a></li><li><a href="rakuten-genre-id.html">楽天のジャンルID（全商品ディレクトリID）の調べ方と「存在しない・古い」エラーの直し方</a></li><li><a href="rakuten-sp-description-tags.html">楽天CSVの「スマートフォン用商品説明文に許可されないHTMLタグ」エラーの直し方｜div・span・styleが使えない理由</a></li><li><a href="rakuten-image-path-error.html">楽天CSVの「画像パスは相対パスでご指定ください」エラーの直し方｜R-Cabinetの相対パスの書き方</a></li></ul></div>
+</article>
+</main>
+<footer><p>© 2026 Midas Works — 本サイトは非公式であり、楽天グループ株式会社とは無関係です。</p></footer>
+</body>
+</html>
