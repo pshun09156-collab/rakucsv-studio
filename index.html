@@ -81,6 +81,23 @@
 <main>
 
   <div class="card">
+    <h2>こんなエラーで止まっていませんか</h2>
+    <p class="hint">アップロードで弾かれる原因はパターン化できます。該当しそうなものがあれば、ページ下部の「既存CSVの点検」に手元のCSVを読み込ませてください。</p>
+    <div style="overflow-x:auto">
+      <table class="sku-table" style="white-space:normal">
+        <tr><th style="min-width:16em">エラー</th><th style="min-width:12em">原因</th><th>本ツールの対応</th></tr>
+        <tr><td>「項目名〇〇は正しくありません」が<strong>全項目</strong>に出る<br>「商品管理番号欄がないか、文字コードがシフトJISではありません」</td><td>CSVをUTF-8で保存している</td><td>文字コードを検出し、Shift-JISの修正版CSVを出力</td></tr>
+        <tr><td>「項目名〇〇は正しくありません」が<strong>一部だけ</strong></td><td>ヘッダー名の誤記(商品属性1（項目）など)</td><td>誤記を検出し正式名に自動修正</td></tr>
+        <tr><td>文字化けで弾かれる</td><td>環境依存文字(™ ® ① ½ 絵文字 全角ダッシュ)</td><td>自動で置換・除去</td></tr>
+        <tr><td>「カタログIDもしくはカタログIDなしの理由が必須です」</td><td>SKU行の入力漏れ</td><td>欠落しているSKU行を特定</td></tr>
+        <tr><td>「スマートフォン用商品説明文に許可されないHTMLタグ」</td><td>SP用にPC用HTMLを流用(div/span/h2/table/style)</td><td>禁止タグを検出して警告</td></tr>
+        <tr><td>「画像パスは相対パスでご指定ください」</td><td>フルURLを入力している</td><td>該当行を検出</td></tr>
+      </table>
+    </div>
+    <p class="note" style="margin-top:10px">これから作る場合は、下のフォームに入力すれば上記を回避したCSVを生成できます。</p>
+  </div>
+
+  <div class="card">
     <h2>商品情報</h2>
     <p class="hint">商品ページ全体に関わる情報です。</p>
     <div class="grid2">
