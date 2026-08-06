@@ -34,6 +34,12 @@
 ### 3. データは外に出ません
 すべての処理がブラウザ内で完結します。商品名・価格・在庫といった店舗の情報がサーバーに送信されることはありません。
 
+## 全カラム一覧(リファレンス)
+
+normal-item.csv の全カラムを検索できる一覧表です。項目名の正式表記・必須かどうか・形式・注意点をまとめています。
+
+**[→ 楽天 normal-item.csv 全カラム一覧・項目名リファレンス](https://pshun09156-collab.github.io/rakucsv-studio/reference/normal-item-columns.html)**
+
 ## 解説記事(無料)
 
 - [「項目名が正しくありません」が全項目に出るときの直し方](https://pshun09156-collab.github.io/rakucsv-studio/articles/rakuten-csv-error-all-items.html)

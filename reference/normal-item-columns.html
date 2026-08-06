@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天 normal-item.csv 全カラム一覧・項目名リファレンス（SKU対応）| RakuCSV Studio</title>
+<meta name="description" content="楽天市場の商品一括登録CSV（normal-item.csv / SKU対応）の全カラムを検索できる一覧表。正式な項目名・必須かどうか・形式・注意点をまとめています。ヘッダー名の誤記によるエラー対策に。">
+<link rel="canonical" href="https://pshun09156-collab.github.io/rakucsv-studio/reference/normal-item-columns.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="楽天 normal-item.csv 全カラム一覧・項目名リファレンス（SKU対応）">
+<meta property="og:description" content="normal-item.csvの全カラムを検索できる一覧表。正式な項目名・必須・形式・注意点。">
+<meta property="og:url" content="https://pshun09156-collab.github.io/rakucsv-studio/reference/normal-item-columns.html">
+<meta name="twitter:card" content="summary">
+<style>
+  body { margin:0; font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; background:#f6f7f9; color:#1f2937; line-height:1.7; }
+  header { background:#bf0000; color:#fff; padding:14px 16px; }
+  header a { color:#fff; text-decoration:none; font-weight:700; }
+  main { max-width:1000px; margin:0 auto; padding:24px 16px 40px; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:24px; }
+  h1 { font-size:1.4rem; margin-top:0; line-height:1.5; }
+  h2 { font-size:1.05rem; border-left:4px solid #bf0000; padding-left:10px; margin-top:2em; }
+  .lead { color:#374151; }
+  .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin:18px 0 10px; position:sticky; top:0; background:#fff; padding:10px 0; z-index:5; border-bottom:1px solid #e5e7eb; }
+  #q { flex:1; min-width:220px; padding:10px 12px; border:1px solid #e5e7eb; border-radius:6px; font-size:1rem; font-family:inherit; }
+  #q:focus { outline:2px solid rgba(191,0,0,.25); border-color:#bf0000; }
+  .controls label { font-size:.85rem; display:flex; align-items:center; gap:5px; cursor:pointer; }
+  select { padding:8px 10px; border:1px solid #e5e7eb; border-radius:6px; font-family:inherit; }
+  #count { font-size:.85rem; color:#6b7280; }
+  table { border-collapse:collapse; width:100%; font-size:.85rem; }
+  th,td { border:1px solid #e5e7eb; padding:7px 9px; text-align:left; vertical-align:top; }
+  th { background:#f9fafb; white-space:nowrap; }
+  td.name { font-weight:600; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .badge { display:inline-block; font-size:.72rem; padding:1px 7px; border-radius:10px; white-space:nowrap; }
+  .b-req { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+  .b-opt { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; }
+  .b-cond { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+  .lv { font-size:.75rem; color:#6b7280; white-space:nowrap; }
+  .cta { background:#fdf7f7; border:1px solid #f3d6d6; border-radius:8px; padding:14px 18px; margin:24px 0 0; }
+  a { color:#bf0000; }
+  .wrap { overflow-x:auto; }
+  footer { max-width:1000px; margin:16px auto 40px; padding:0 16px; font-size:.75rem; color:#6b7280; }
+  .tips li { margin:6px 0; }
+</style>
+</head>
+<body>
+<header><a href="../index.html">← RakuCSV Studio(無料ツール)に戻る</a></header>
+<main>
+<div class="card">
+<h1>楽天 normal-item.csv 全カラム一覧・項目名リファレンス(SKU対応)</h1>
+<p class="lead">楽天市場の商品一括登録CSV(<code>normal-item.csv</code>)の全カラムを検索できる一覧です。<strong>ヘッダー(項目名)は完全一致でないと「項目名〇〇は正しくありません」で弾かれます。</strong>コピーしてお使いください。</p>
+
+<h2 style="margin-top:1.4em">とくに間違えやすい項目名</h2>
+<ul class="tips">
+<li>商品属性は <code>商品属性（項目）1</code> — <strong>カッコが先、番号が後</strong>。<code>商品属性1（項目）</code>は誤りです</li>
+<li>SKU画像は <code>SKU画像タイプ</code> / <code>SKU画像パス</code> / <code>SKU画像名（ALT）</code> — <strong>番号が付きません</strong>(商品画像は番号あり)</li>
+<li>販売価格の正式名は <code>通常購入販売価格</code> です</li>
+<li>カッコは全角(<code>（）</code>)です</li>
+</ul>
+
+<div class="controls">
+  <input type="search" id="q" placeholder="項目名で検索(例: 商品属性、カタログ、画像、在庫)">
+  <select id="lv"><option value="">すべての階層</option><option value="商品">商品レベル</option><option value="商品オプション">商品オプション</option><option value="SKU">SKUレベル</option></select>
+  <label><input type="checkbox" id="reqonly"> 必須のみ</label>
+  <span id="count"></span>
+</div>
+<div class="wrap"><table id="t">
+<thead><tr><th>No</th><th>正式な項目名</th><th>階層</th><th>必須</th><th>形式</th><th>備考</th></tr></thead>
+<tbody></tbody>
+</table></div>
+
+<div class="cta">🛠 項目名を1文字も間違えずにCSVを作るなら <a href="../index.html">RakuCSV Studio(無料)</a> をどうぞ。手元のCSVを読み込ませれば、項目名の誤記・文字コード・環境依存文字を自動で診断し、修正版CSVを出力できます。データは外部に送信されません。</div>
+
+<h2>関連記事</h2>
+<ul>
+<li><a href="../articles/rakuten-csv-error-all-items.html">「項目名が正しくありません」が全項目に出るときの直し方</a></li>
+<li><a href="../articles/rakuten-multi-sku-csv.html">マルチSKU(バリエーション)商品をCSVで登録する方法</a></li>
+<li><a href="../articles/rakuten-catalog-id-error.html">「カタログIDもしくはカタログIDなしの理由が必須です」の対処法</a></li>
+<li><a href="../articles/rakuten-item-attributes.html">「必須の商品属性を指定してください」の直し方</a></li>
+</ul>
+<p style="font-size:.85rem">エラーの全パターンと対策は <a href="https://note.com/midas_works/n/ncad7544d90c8">完全攻略ガイド(¥980)</a> にまとめています。</p>
+</div>
+</main>
+<footer><p>※本ページは非公式であり、楽天グループ株式会社とは無関係です。仕様は変更される場合があります。最新の正式なカラム構成は、RMSの「商品一括編集」からダウンロードしたCSVのヘッダー行でご確認ください。<br>© 2026 Midas Works</p></footer>
+<script>
+const DATA = [{"no": "1", "name": "商品管理番号（商品URL）", "level": "商品", "req": "存在必須(全行)", "fmt": "半角2-32", "note": ""}, {"no": "2", "name": "商品番号", "level": "商品", "req": "任意", "fmt": "文字列32", "note": ""}, {"no": "3", "name": "商品名", "level": "商品", "req": "新規必須", "fmt": "文字列255", "note": ""}, {"no": "4", "name": "倉庫指定", "level": "商品", "req": "任意", "fmt": "0販売中/1倉庫", "note": ""}, {"no": "5", "name": "サーチ表示", "level": "商品", "req": "任意", "fmt": "0表示/1非表示", "note": ""}, {"no": "6", "name": "消費税", "level": "商品", "req": "任意", "fmt": "0税別/1税込", "note": ""}, {"no": "7", "name": "消費税率", "level": "商品", "req": "任意", "fmt": "空/0/0.08/0.1", "note": ""}, {"no": "8-9", "name": "販売期間指定（開始日時）/（終了日時）", "level": "商品", "req": "任意", "fmt": "YYYY/MM/DD HH:MM", "note": ""}, {"no": "10", "name": "ポイント変倍率", "level": "商品", "req": "任意", "fmt": "2-20", "note": ""}, {"no": "11-12", "name": "ポイント変倍率適用期間（開始日時）/（終了日時）", "level": "商品", "req": "任意", "fmt": "YYYY/MM/DD HH", "note": ""}, {"no": "13", "name": "注文ボタン", "level": "商品", "req": "任意", "fmt": "0/1/2", "note": ""}, {"no": "14", "name": "商品問い合わせボタン", "level": "商品", "req": "任意", "fmt": "0/1", "note": ""}, {"no": "15", "name": "予約商品発売日", "level": "商品", "req": "予約時必須", "fmt": "YYYY/MM/DD HH:MM", "note": ""}, {"no": "16", "name": "闇市パスワード", "level": "商品", "req": "任意", "fmt": "半角32", "note": ""}, {"no": "17", "name": "在庫表示", "level": "商品", "req": "任意", "fmt": "-1/0/1-20", "note": ""}, {"no": "18", "name": "代引料", "level": "商品", "req": "任意", "fmt": "0別/1込", "note": ""}, {"no": "19", "name": "ジャンルID", "level": "商品", "req": "存在必須", "fmt": "半角数字6", "note": "全商品ディレクトリID。最新を確認"}, {"no": "20", "name": "非製品属性タグID", "level": "商品", "req": "任意", "fmt": "半角数字", "note": ""}, {"no": "21", "name": "キャッチコピー", "level": "商品", "req": "任意", "fmt": "文字列174", "note": ""}, {"no": "22", "name": "PC用商品説明文", "level": "商品", "req": "任意", "fmt": "文字列10240", "note": "HTML可"}, {"no": "23", "name": "スマートフォン用商品説明文", "level": "商品", "req": "任意", "fmt": "文字列10240", "note": "タグ制限厳しい(br中心)"}, {"no": "24", "name": "PC用販売説明文", "level": "商品", "req": "任意", "fmt": "文字列10240", "note": "HTML可・下部表示"}, {"no": "25-44", "name": "商品画像タイプ1〜24", "level": "商品", "req": "任意", "fmt": "cabinet/gold", "note": ""}, {"no": "45-64", "name": "商品画像パス1〜20", "level": "商品", "req": "任意", "fmt": "半角255", "note": "相対パスのみ。フルURL不可"}, {"no": "65-84", "name": "商品画像名（ALT）1〜20", "level": "商品", "req": "任意", "fmt": "文字列255", "note": ""}, {"no": "85", "name": "動画", "level": "商品", "req": "任意", "fmt": "半角2048", "note": ""}, {"no": "86", "name": "白背景画像タイプ", "level": "商品", "req": "任意", "fmt": "cabinet/gold", "note": ""}, {"no": "87", "name": "白背景画像パス", "level": "商品", "req": "任意", "fmt": "半角255", "note": "相対パス"}, {"no": "88", "name": "商品情報レイアウト", "level": "商品", "req": "任意", "fmt": "1-8", "note": ""}, {"no": "89", "name": "ヘッダー・フッター・レフトナビ", "level": "商品", "req": "任意", "fmt": "文字列60", "note": ""}, {"no": "90", "name": "表示項目の並び順", "level": "商品", "req": "任意", "fmt": "文字列60", "note": ""}, {"no": "91", "name": "共通説明文（小）", "level": "商品", "req": "任意", "fmt": "文字列60", "note": ""}, {"no": "92", "name": "目玉商品", "level": "商品", "req": "任意", "fmt": "文字列60", "note": ""}, {"no": "93", "name": "共通説明文（大）", "level": "商品", "req": "任意", "fmt": "文字列60", "note": ""}, {"no": "94", "name": "レビュー本文表示", "level": "商品", "req": "任意", "fmt": "0/1/2", "note": ""}, {"no": "95", "name": "メーカー提供情報表示", "level": "商品", "req": "任意", "fmt": "0/1", "note": ""}, {"no": "96", "name": "定期購入ボタン", "level": "商品", "req": "任意", "fmt": "半角1", "note": ""}, {"no": "97-98", "name": "指定可能なお届け日…", "level": "商品", "req": "任意", "fmt": "半角1", "note": ""}, {"no": "99", "name": "バリエーション項目キー定義", "level": "商品", "req": "マルチSKU必須", "fmt": "`tkey-a\\", "note": "tkey-b`"}, {"no": "100", "name": "バリエーション項目名定義", "level": "商品", "req": "マルチSKU必須", "fmt": "`カラー\\", "note": "サイズ`各32"}, {"no": "101-106", "name": "バリエーション1〜6選択肢定義", "level": "商品", "req": "マルチSKU必須", "fmt": "`赤\\", "note": "青`各32"}, {"no": "107", "name": "選択肢タイプ", "level": "商品オプション", "req": "", "fmt": "s/c/f", "note": ""}, {"no": "108", "name": "商品オプション項目名", "level": "商品オプション", "req": "", "fmt": "", "note": ""}, {"no": "109-208", "name": "商品オプション選択肢1〜100", "level": "商品オプション", "req": "", "fmt": "", "note": ""}, {"no": "209", "name": "商品オプション選択必須", "level": "商品オプション", "req": "", "fmt": "0/1", "note": ""}, {"no": "210", "name": "SKU管理番号", "level": "SKU", "req": "存在必須", "fmt": "半角2-32", "note": ""}, {"no": "211", "name": "システム連携用SKU番号", "level": "SKU", "req": "任意", "fmt": "文字列96", "note": ""}, {"no": "212-217", "name": "バリエーション項目キー1〜6", "level": "SKU", "req": "マルチSKU必須", "fmt": "文字列64", "note": ""}, {"no": "218-223", "name": "バリエーション項目選択肢1〜6", "level": "SKU", "req": "マルチSKU必須", "fmt": "文字列32", "note": ""}, {"no": "224", "name": "通常購入販売価格", "level": "SKU", "req": "存在必須", "fmt": "半角数字9", "note": "=販売価格"}, {"no": "225", "name": "表示価格", "level": "SKU", "req": "任意", "fmt": "半角9 or open", "note": ""}, {"no": "226", "name": "二重価格文言管理番号", "level": "SKU", "req": "任意", "fmt": "0/1/2/4", "note": ""}, {"no": "227", "name": "注文受付数", "level": "SKU", "req": "任意", "fmt": "半角3", "note": ""}, {"no": "228", "name": "再入荷お知らせボタン", "level": "SKU", "req": "任意", "fmt": "0/1", "note": ""}, {"no": "229", "name": "のし対応", "level": "SKU", "req": "任意", "fmt": "0/1", "note": ""}, {"no": "230", "name": "在庫数", "level": "SKU", "req": "存在必須", "fmt": "半角10", "note": ""}, {"no": "231", "name": "在庫戻しフラグ", "level": "SKU", "req": "任意", "fmt": "0/1", "note": ""}, {"no": "232", "name": "在庫切れ時の注文受付", "level": "SKU", "req": "任意", "fmt": "0/1", "note": ""}, {"no": "233-234", "name": "在庫あり時/切れ時納期管理番号", "level": "SKU", "req": "任意", "fmt": "半角10", "note": ""}, {"no": "235-237", "name": "在庫あり時/切れ時出荷リードタイム・配送リードタイム", "level": "SKU", "req": "任意", "fmt": "文字列60", "note": ""}, {"no": "238", "name": "SKU倉庫指定", "level": "SKU", "req": "任意", "fmt": "0/1", "note": ""}, {"no": "239", "name": "あす楽配送管理番号", "level": "SKU", "req": "任意", "fmt": "半角1", "note": ""}, {"no": "240", "name": "配送方法セット管理番号", "level": "SKU", "req": "任意", "fmt": "半角2", "note": ""}, {"no": "241", "name": "送料", "level": "SKU", "req": "任意", "fmt": "0別/1込", "note": ""}, {"no": "242-243", "name": "送料区分1/2", "level": "SKU", "req": "任意", "fmt": "1-15", "note": ""}, {"no": "244", "name": "個別送料", "level": "SKU", "req": "任意", "fmt": "半角9", "note": ""}, {"no": "245", "name": "地域別個別送料管理番号", "level": "SKU", "req": "任意", "fmt": "1-20", "note": ""}, {"no": "246", "name": "単品配送設定使用", "level": "SKU", "req": "任意", "fmt": "1-6", "note": ""}, {"no": "247", "name": "海外配送管理番号", "level": "SKU", "req": "任意", "fmt": "1-5", "note": ""}, {"no": "248", "name": "カタログID", "level": "SKU", "req": "ジャンルにより必須", "fmt": "文字列30", "note": "JANコード等"}, {"no": "249", "name": "カタログIDなしの理由", "level": "SKU", "req": "任意", "fmt": "1-5", "note": "1セット/2サービス/3当店オリジナル/4項目選択肢別在庫/5該当コードなし"}, {"no": "250", "name": "セット商品用カタログID", "level": "SKU", "req": "理由1の時必須", "fmt": "文字列30", "note": ""}, {"no": "251", "name": "SKU画像タイプ", "level": "SKU", "req": "任意", "fmt": "半角255", "note": "番号なし"}, {"no": "252", "name": "SKU画像パス", "level": "SKU", "req": "任意", "fmt": "半角255", "note": "相対パス"}, {"no": "253", "name": "SKU画像名（ALT）", "level": "SKU", "req": "任意", "fmt": "文字列255", "note": ""}, {"no": "254", "name": "定期商品販売価格", "level": "SKU", "req": "任意", "fmt": "半角9", "note": ""}, {"no": "255", "name": "初回価格", "level": "SKU", "req": "任意", "fmt": "半角9", "note": ""}, {"no": "256-260", "name": "自由入力行（項目）1〜5", "level": "SKU", "req": "任意", "fmt": "文字列40", "note": ""}, {"no": "261-265", "name": "自由入力行（値）1〜5", "level": "SKU", "req": "任意", "fmt": "文字列140", "note": ""}, {"no": "266-365", "name": "商品属性（項目）1〜100", "level": "SKU", "req": "必須属性の場合必須", "fmt": "文字列", "note": "カッコ先・番号後"}, {"no": "366-465", "name": "商品属性（値）1〜100", "level": "SKU", "req": "必須属性の場合必須", "fmt": "文字列/半角数字", "note": ""}, {"no": "466-565", "name": "商品属性（単位）1〜100", "level": "SKU", "req": "必須属性の場合必須", "fmt": "文字列", "note": ""}];
+const tb = document.querySelector("#t tbody"), q = document.getElementById("q"),
+      lv = document.getElementById("lv"), ro = document.getElementById("reqonly"), cnt = document.getElementById("count");
+function badge(r) {
+  const t = r.req || "";
+  if (!t || t === "任意") return '<span class="badge b-opt">任意</span>';
+  if (t.includes("存在必須") || t === "必須" || t.includes("新規必須")) return '<span class="badge b-req">' + t + '</span>';
+  return '<span class="badge b-cond">' + t + '</span>';
+}
+function render() {
+  const kw = q.value.trim().toLowerCase(), level = lv.value, reqOnly = ro.checked;
+  const out = DATA.filter(r => {
+    if (level && r.level !== level) return false;
+    if (reqOnly && (!r.req || r.req === "任意")) return false;
+    if (kw && !(r.name + " " + r.note + " " + r.fmt).toLowerCase().includes(kw)) return false;
+    return true;
+  });
+  tb.innerHTML = out.map(r =>
+    `<tr><td>${r.no}</td><td class="name">${r.name}</td><td class="lv">${r.level}</td><td>${badge(r)}</td><td>${r.fmt}</td><td>${r.note}</td></tr>`
+  ).join("");
+  cnt.textContent = out.length + " / " + DATA.length + " 件";
+}
+q.addEventListener("input", render); lv.addEventListener("change", render); ro.addEventListener("change", render);
+render();
+</script>
+</body>
+</html>
