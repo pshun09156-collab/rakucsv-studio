@@ -69,6 +69,24 @@
   #btn-fix-download { background: var(--ok); color: #fff; display: none; }
   input[type=file] { font-size: .9rem; }
   .summary { font-size: .9rem; font-weight: 700; margin: 12px 0 4px; }
+  #btn-edit-load { background: var(--accent); color: #fff; }
+  #btn-edit-load:hover { background: var(--accent-dark); }
+  #btn-edit-download { background: var(--ok); color: #fff; }
+  .edit-tools { border: 1px solid var(--line); border-radius: 8px; padding: 4px 14px 14px; margin: 14px 0; background: #fbfbfc; }
+  .edit-tools h3 { font-size: .9rem; margin: 12px 0 2px; }
+  .edit-op { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .edit-op input { width: 6em; flex: 0 0 auto; }
+  .edit-op button { padding: 7px 14px; font-size: .85rem; }
+  .edit-op .unit { font-size: .85rem; }
+  #edit-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-height: 60vh; overflow-y: auto; }
+  #edit-table { border-collapse: collapse; font-size: .8rem; white-space: nowrap; }
+  #edit-table th, #edit-table td { border: 1px solid var(--line); padding: 4px 6px; }
+  #edit-table th { background: #f9fafb; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+  #edit-table td.ro { background: #fafafa; color: var(--sub); max-width: 22em; overflow: hidden; text-overflow: ellipsis; }
+  #edit-table td.rownum { color: var(--sub); text-align: right; }
+  #edit-table input { min-width: 7em; padding: 4px 6px; font-size: .85rem; border: 1px solid var(--line); border-radius: 4px; }
+  #edit-table input.edit-changed { background: #fff7ed; border-color: #f59e0b; font-weight: 700; color: #92400e; }
+  #edit-table input.edit-invalid { background: #fef2f2; border-color: #ef4444; color: var(--err); }
 </style>
 </head>
 <body>
@@ -92,6 +110,7 @@
         <tr><td>「カタログIDもしくはカタログIDなしの理由が必須です」</td><td>SKU行の入力漏れ</td><td>欠落しているSKU行を特定</td></tr>
         <tr><td>「スマートフォン用商品説明文に許可されないHTMLタグ」</td><td>SP用にPC用HTMLを流用(div/span/h2/table/style)</td><td>禁止タグを検出して警告</td></tr>
         <tr><td>「画像パスは相対パスでご指定ください」</td><td>フルURLを入力している</td><td>該当行を検出</td></tr>
+        <tr><td>JANコードの先頭ゼロが消える / 日付が勝手に変換される</td><td>既存CSVをExcelで開いて価格・在庫を直している</td><td>「CSVを読み込んで編集」でExcelを通さずに一括更新</td></tr>
       </table>
     </div>
     <p class="note" style="margin-top:10px">これから作る場合は、下のフォームに入力すれば上記を回避したCSVを生成できます。</p>
@@ -284,9 +303,62 @@
     <div id="check-messages" style="margin-top:14px"></div>
   </div>
 
+  <div class="card">
+    <h2>CSVを読み込んで編集(β)</h2>
+    <p class="hint">RMSからダウンロードした normal-item.csv を読み込み、価格・在庫などをブラウザ上で編集して再出力します。Excelを通さないので、UTF-8保存による全項目エラー・JANコードの先頭ゼロ落ち・日付の勝手な変換が起きません。<strong>編集しなかった列・行は1文字も変えずにそのまま出力します。</strong>ファイルは外部に送信されません。</p>
+    <input type="file" id="edit-file" accept=".csv,text/csv,application/vnd.ms-excel">
+    <div class="actions" style="margin-top:12px">
+      <button type="button" id="btn-edit-load">読み込む</button>
+    </div>
+
+    <div id="edit-panel" style="display:none">
+      <div class="edit-tools">
+        <h3>絞り込み</h3>
+        <input type="text" id="edit-filter" placeholder="商品管理番号 または 商品名 の一部を入力(空欄なら全行)">
+        <p class="note">下の一括操作は<strong>絞り込みに一致した行だけ</strong>に適用されます。全商品への誤爆を防ぐため、まず絞り込んでから操作してください。</p>
+
+        <h3>一括操作</h3>
+        <div id="bulk-price">
+          <div class="edit-op">
+            <span class="unit">価格を</span>
+            <input type="text" id="edit-pct" inputmode="decimal" placeholder="-10">
+            <span class="unit">% 変更</span>
+            <button type="button" id="btn-edit-pct" class="secondary">適用</button>
+          </div>
+          <div class="edit-op">
+            <span class="unit">価格を</span>
+            <input type="text" id="edit-amt" inputmode="numeric" placeholder="-200">
+            <span class="unit">円 変更</span>
+            <button type="button" id="btn-edit-amt" class="secondary">適用</button>
+          </div>
+        </div>
+        <div id="bulk-stock">
+          <div class="edit-op">
+            <span class="unit">在庫数を全行</span>
+            <input type="text" id="edit-stock" inputmode="numeric" placeholder="0">
+            <span class="unit">に設定</span>
+            <button type="button" id="btn-edit-stock" class="secondary">適用</button>
+          </div>
+        </div>
+        <p class="note">値が空のセルは変更しません(マルチSKUの商品行に価格・在庫を書き込まないためです)。%変更は四捨五入し、1円未満にはなりません。</p>
+      </div>
+
+      <div class="summary" id="edit-summary"></div>
+      <div id="edit-table-wrap"><table id="edit-table"></table></div>
+      <p class="note" id="edit-truncated" style="display:none"></p>
+      <div class="actions" style="margin-top:12px">
+        <button type="button" id="btn-edit-download">編集したCSVをダウンロード (Shift-JIS)</button>
+      </div>
+      <p class="note">出力は全カラム・全行を保持したまま、編集した値だけを差し替えます(Shift-JIS / 全項目ダブルクォート / CRLF)。</p>
+    </div>
+
+    <div id="edit-messages" style="margin-top:14px"></div>
+  </div>
+
 </main>
 <footer>
-  <p>📚 解説記事: <a href="articles/rakuten-csv-error-all-items.html">「項目名が正しくありません」全項目エラー</a> / <a href="articles/rakuten-multi-sku-csv.html">マルチSKUのCSV登録方法</a> / <a href="articles/rakuten-catalog-id-error.html">カタログID必須エラー</a> / <a href="articles/rakuten-genre-id.html">ジャンルIDの調べ方</a> / <a href="articles/rakuten-sp-description-tags.html">スマホ用説明文の禁止タグ</a> / <a href="articles/rakuten-image-path-error.html">画像パスのエラー</a> / <a href="articles/rakuten-item-attributes.html">必須の商品属性</a><br>
+  <p>📋 <a href="reference/normal-item-columns.html">normal-item.csv 全カラム一覧・項目名リファレンス</a>(検索できます)<br>
+  📚 解説記事: <a href="articles/rakuten-csv-error-all-items.html">「項目名が正しくありません」全項目エラー</a> / <a href="articles/rakuten-multi-sku-csv.html">マルチSKUのCSV登録方法</a> / <a href="articles/rakuten-catalog-id-error.html">カタログID必須エラー</a> / <a href="articles/rakuten-genre-id.html">ジャンルIDの調べ方</a> / <a href="articles/rakuten-sp-description-tags.html">スマホ用説明文の禁止タグ</a> / <a href="articles/rakuten-image-path-error.html">画像パスのエラー</a> / <a href="articles/rakuten-item-attributes.html">必須の商品属性</a><br>
   📖 もっと詳しく: <a href="https://note.com/midas_works/n/ncad7544d90c8" target="_blank" rel="noopener">楽天CSV完全攻略ガイド(¥980・エラー辞典/チェックリスト付き)</a></p>
   <p><strong>ご利用上の注意</strong>: 本ツールは無保証で提供されます。生成されたCSVは、RMSへのアップロード前に必ず内容をご確認ください。ジャンルごとの必須属性・最新のジャンルIDはRMSでご確認ください。本ツールは楽天グループ株式会社とは関係のない非公式ツールです。入力されたデータはお使いのブラウザ内でのみ処理され、外部に送信されることはありません。</p>
   <p>© 2026 Midas Works — RakuCSV Studio β</p>
@@ -1027,6 +1099,293 @@ $("btn-fix-download").addEventListener("click", () => {
   a.download = "normal-item.csv";
   a.click();
   URL.revokeObjectURL(a.href);
+});
+
+/* ================= 既存CSVの読み込み→編集→再出力 ================= */
+
+/* 表示する列。ここに無い列は画面に出さないが、出力時は元のまま保持する */
+const EDIT_ID_COLS  = ["商品管理番号（商品URL）", "SKU管理番号", "商品名"];
+const EDIT_VAL_COLS = [
+  { name: "通常購入販売価格", kind: "price",   re: /^\d{1,9}$/,          hint: "半角数字(カンマ・円マーク不可)" },
+  { name: "在庫数",           kind: "stock",   re: /^\d{1,10}$/,         hint: "半角数字" },
+  { name: "倉庫指定",         kind: "flag01",  re: /^[01]$/,             hint: "0(販売中) または 1(倉庫)" },
+  { name: "サーチ表示",       kind: "flag01",  re: /^[01]$/,             hint: "0(表示) または 1(非表示)" },
+  { name: "カタログID",       kind: "catalog", re: /^[0-9A-Za-z]{1,30}$/, hint: "半角英数字30文字以内(通常はJANコード)" }
+];
+const EDIT_MAX_RENDER = 500;
+
+let editFile = null;
+let editHeader = null;   // 元のヘッダー(そのまま出力)
+let editOrig = null;     // 読み込み直後の全セル(比較用・不変)
+let editRows = null;     // 編集中の全セル
+let editCols = [];       // 画面に出す列 [{name, ci, editable, spec}]
+let editInvalid = new Set(); // "r:ci" 形式
+
+$("edit-file").addEventListener("change", (e) => {
+  editFile = e.target.files[0] || null;
+  editHeader = editOrig = editRows = null;
+  editCols = [];
+  editInvalid.clear();
+  $("edit-panel").style.display = "none";
+  $("edit-messages").innerHTML = "";
+});
+
+$("btn-edit-load").addEventListener("click", async () => {
+  const box = $("edit-messages");
+  box.innerHTML = "";
+  $("edit-panel").style.display = "none";
+  editHeader = editOrig = editRows = null;
+  editCols = [];
+  editInvalid.clear();
+
+  if (!editFile) { box.appendChild(msg("err", "✖ CSVファイルを選択してください。")); return; }
+
+  const buf = new Uint8Array(await editFile.arrayBuffer());
+  const detected = Encoding.detect(buf) || "不明";
+  let text;
+  try {
+    text = Encoding.codeToString(Encoding.convert(buf, "UNICODE", detected === "不明" ? undefined : detected));
+  } catch (err) {
+    box.appendChild(msg("err", "✖ ファイルを読み取れませんでした。CSVファイルかご確認ください。"));
+    return;
+  }
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+  const rows = parseCsv(text);
+  if (rows.length < 2) {
+    box.appendChild(msg("err", "✖ データ行がありません(1行目のヘッダーの下に商品データが必要です)。"));
+    return;
+  }
+  const header = rows[0];
+  const data = rows.slice(1);
+
+  const badCols = [];
+  data.forEach((r, i) => { if (r.length !== header.length) badCols.push(i + 2); });
+  if (badCols.length) {
+    box.appendChild(msg("err", `✖ 列数がヘッダー(${header.length}列)と一致しない行があるため、安全に編集できません: ${rowList(badCols)}。上の「既存CSVの点検」で内容をご確認ください。`));
+    return;
+  }
+
+  const cols = [];
+  for (const name of EDIT_ID_COLS) {
+    const ci = header.indexOf(name);
+    if (ci >= 0) cols.push({ name, ci, editable: false, spec: null });
+  }
+  for (const spec of EDIT_VAL_COLS) {
+    const ci = header.indexOf(spec.name);
+    if (ci >= 0) cols.push({ name: spec.name, ci, editable: true, spec });
+  }
+  if (!cols.some(c => c.editable)) {
+    box.appendChild(msg("err", `✖ 編集できる列がこのCSVにありません。対応している列: ${EDIT_VAL_COLS.map(c => c.name).join(" / ")}。RMSからダウンロードした normal-item.csv かご確認ください。`));
+    return;
+  }
+
+  editHeader = header;
+  editOrig = data.map(r => r.slice());
+  editRows = data.map(r => r.slice());
+  editCols = cols;
+
+  if (detected === "UTF8" || detected === "UNICODE" || detected === "UTF16" || detected === "UTF16BE" || detected === "UTF16LE" || detected === "UTF32") {
+    box.appendChild(msg("warn", `⚠ 読み込んだファイルの文字コードは ${detected} でした(そのままアップロードすると全項目エラーになります)。本ツールから書き出すCSVは Shift-JIS になるため、この問題も同時に解消されます。`));
+  }
+  const hidden = EDIT_VAL_COLS.filter(c => header.indexOf(c.name) < 0).map(c => c.name);
+  if (hidden.length) box.appendChild(msg("warn", `⚠ このCSVに無いため編集できない列: ${hidden.join(" / ")}。値の追加が必要な場合はRMSで該当列を含めてダウンロードし直してください。`));
+  box.appendChild(msg("ok", `✔ ${data.length}行 / ${header.length}列 を読み込みました。編集しない列・行の値(JANコードの先頭ゼロなど)はそのまま保持されます。`));
+
+  $("edit-filter").value = "";
+  $("bulk-price").style.display = header.indexOf("通常購入販売価格") >= 0 ? "" : "none";
+  $("bulk-stock").style.display = header.indexOf("在庫数") >= 0 ? "" : "none";
+  $("edit-panel").style.display = "block";
+  renderEditTable();
+});
+
+/* 絞り込み(商品管理番号・商品名の部分一致)後の行インデックス */
+function editFilteredIdx() {
+  if (!editRows) return [];
+  const q = $("edit-filter").value.trim().toLowerCase();
+  const all = editRows.map((_, i) => i);
+  if (!q) return all;
+  const iUrl = editHeader.indexOf("商品管理番号（商品URL）");
+  const iName = editHeader.indexOf("商品名");
+  return all.filter(i => {
+    const a = iUrl >= 0 ? (editRows[i][iUrl] || "") : "";
+    const b = iName >= 0 ? (editRows[i][iName] || "") : "";
+    return (a + "\n" + b).toLowerCase().includes(q);
+  });
+}
+
+function renderEditTable() {
+  const t = $("edit-table");
+  t.innerHTML = "";
+  const idxs = editFilteredIdx();
+  const shown = idxs.slice(0, EDIT_MAX_RENDER);
+
+  const head = document.createElement("tr");
+  for (const label of ["行", ...editCols.map(c => c.name)]) {
+    const th = document.createElement("th"); th.textContent = label; head.appendChild(th);
+  }
+  t.appendChild(head);
+
+  for (const r of shown) {
+    const tr = document.createElement("tr");
+    tr.dataset.r = r;
+    const num = document.createElement("td");
+    num.className = "rownum"; num.textContent = r + 2; // CSVの行番号(ヘッダー込み)
+    tr.appendChild(num);
+    for (const c of editCols) {
+      const td = document.createElement("td");
+      const v = editRows[r][c.ci] || "";
+      if (!c.editable) {
+        td.className = "ro";
+        td.textContent = v;
+        td.title = v;
+      } else {
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.value = v;
+        inp.dataset.r = r;
+        inp.dataset.c = c.ci;
+        if (v !== (editOrig[r][c.ci] || "")) inp.classList.add("edit-changed");
+        if (editInvalid.has(r + ":" + c.ci)) inp.classList.add("edit-invalid");
+        inp.addEventListener("input", () => {
+          editRows[r][c.ci] = inp.value;
+          inp.classList.toggle("edit-changed", inp.value !== (editOrig[r][c.ci] || ""));
+          inp.classList.remove("edit-invalid");
+          editInvalid.delete(r + ":" + c.ci);
+          updateEditSummary();
+        });
+        td.appendChild(inp);
+      }
+      tr.appendChild(td);
+    }
+    t.appendChild(tr);
+  }
+
+  const trunc = $("edit-truncated");
+  if (idxs.length > shown.length) {
+    trunc.style.display = "block";
+    trunc.textContent = `表示は先頭${EDIT_MAX_RENDER}行までです(一括操作は絞り込みに一致する全${idxs.length}行に適用されます)。絞り込み条件を絞ると全行を確認できます。`;
+  } else {
+    trunc.style.display = "none";
+  }
+  updateEditSummary(idxs);
+}
+
+function editChangedCount() {
+  let n = 0;
+  for (let r = 0; r < editRows.length; r++) {
+    for (const c of editCols) {
+      if (!c.editable) continue;
+      if ((editRows[r][c.ci] || "") !== (editOrig[r][c.ci] || "")) n++;
+    }
+  }
+  return n;
+}
+
+function updateEditSummary(idxs) {
+  if (!editRows) return;
+  const n = (idxs || editFilteredIdx()).length;
+  $("edit-summary").textContent = `全${editRows.length}行中 ${n}行を表示 / 変更したセル ${editChangedCount()}個`;
+}
+
+$("edit-filter").addEventListener("input", () => { if (editRows) renderEditTable(); });
+
+/* 一括操作。値が空のセルは対象外(商品行に価格・在庫を書き込まないため) */
+function applyBulk(colName, fn) {
+  const ci = editHeader.indexOf(colName);
+  const idxs = editFilteredIdx();
+  let changed = 0, skippedEmpty = 0, skippedBad = 0;
+  for (const r of idxs) {
+    const cur = editRows[r][ci] || "";
+    if (cur.trim() === "") { skippedEmpty++; continue; }
+    const nv = fn(cur.trim());
+    if (nv === null) { skippedBad++; continue; }
+    if (nv !== editRows[r][ci]) { editRows[r][ci] = nv; changed++; }
+    editInvalid.delete(r + ":" + ci);
+  }
+  renderEditTable();
+  return { total: idxs.length, changed, skippedEmpty, skippedBad };
+}
+
+function bulkReport(label, res) {
+  const box = $("edit-messages");
+  box.innerHTML = "";
+  const extra = [];
+  if (res.skippedEmpty) extra.push(`空欄のため対象外 ${res.skippedEmpty}行`);
+  if (res.skippedBad) extra.push(`数値でないため変更できず ${res.skippedBad}行`);
+  box.appendChild(msg("ok", `✔ ${label}: 対象${res.total}行のうち ${res.changed}行を変更しました。${extra.length ? "(" + extra.join(" / ") + ")" : ""}`));
+  if (res.skippedBad) box.appendChild(msg("warn", "⚠ 半角数字でない値が入ったセルは変更していません。元の値のまま出力されます。"));
+}
+
+$("btn-edit-pct").addEventListener("click", () => {
+  const box = $("edit-messages");
+  const raw = $("edit-pct").value.trim();
+  if (!/^-?\d+(\.\d+)?$/.test(raw)) { box.innerHTML = ""; box.appendChild(msg("err", "✖ 変更率は半角数字で入力してください(例: -10 / 5.5)。")); return; }
+  const p = Number(raw);
+  if (p <= -100) { box.innerHTML = ""; box.appendChild(msg("err", "✖ -100%以下は指定できません。")); return; }
+  const res = applyBulk("通常購入販売価格", (v) => {
+    if (!/^\d{1,9}$/.test(v)) return null;
+    return String(Math.max(1, Math.round(Number(v) * (1 + p / 100))));
+  });
+  bulkReport(`価格を ${p}% 変更`, res);
+});
+
+$("btn-edit-amt").addEventListener("click", () => {
+  const box = $("edit-messages");
+  const raw = $("edit-amt").value.trim();
+  if (!/^-?\d{1,9}$/.test(raw)) { box.innerHTML = ""; box.appendChild(msg("err", "✖ 変更額は半角数字で入力してください(例: -200 / 500)。")); return; }
+  const a = Number(raw);
+  const res = applyBulk("通常購入販売価格", (v) => {
+    if (!/^\d{1,9}$/.test(v)) return null;
+    return String(Math.max(1, Number(v) + a));
+  });
+  bulkReport(`価格を ${a >= 0 ? "+" : ""}${a}円 変更`, res);
+});
+
+$("btn-edit-stock").addEventListener("click", () => {
+  const box = $("edit-messages");
+  const raw = $("edit-stock").value.trim();
+  if (!/^\d{1,10}$/.test(raw)) { box.innerHTML = ""; box.appendChild(msg("err", "✖ 在庫数は半角数字で入力してください。")); return; }
+  const res = applyBulk("在庫数", () => raw);
+  bulkReport(`在庫数を ${raw} に設定`, res);
+});
+
+/* 編集後の値の検証。編集したセルの不正はダウンロードをブロックし、
+   元から入っていた不正値は警告のみ(元データを勝手に変えないため) */
+function validateEdited() {
+  const errors = [], warnings = [];
+  editInvalid.clear();
+  for (const c of editCols) {
+    if (!c.editable) continue;
+    const badEdited = [], badOrig = [];
+    for (let r = 0; r < editRows.length; r++) {
+      const v = (editRows[r][c.ci] || "").trim();
+      if (v === "") continue;
+      if (c.spec.re.test(v)) continue;
+      if (v !== (editOrig[r][c.ci] || "").trim()) { badEdited.push(r + 2); editInvalid.add(r + ":" + c.ci); }
+      else badOrig.push(r + 2);
+    }
+    if (badEdited.length) errors.push(`編集した「${c.name}」に不正な値があります(${c.spec.hint}): ${rowList(badEdited)}`);
+    if (badOrig.length) warnings.push(`元のCSVの時点で「${c.name}」が${c.spec.hint}になっていない行があります: ${rowList(badOrig)}。値は変更せずそのまま出力します。`);
+  }
+  return { errors, warnings };
+}
+
+$("btn-edit-download").addEventListener("click", () => {
+  if (!editRows) return;
+  const box = $("edit-messages");
+  box.innerHTML = "";
+  const { errors, warnings } = validateEdited();
+  for (const e of errors) box.appendChild(msg("err", "✖ " + e));
+  for (const w of warnings) box.appendChild(msg("warn", "⚠ " + w));
+  if (errors.length) {
+    renderEditTable();
+    box.appendChild(msg("err", "✖ 不正な値があるためダウンロードを中止しました。赤くなったセルを修正してください。"));
+    return;
+  }
+  const csv = toCsv([editHeader, ...editRows]);
+  downloadCsvBytes(new Uint8Array(Encoding.convert(Encoding.stringToCode(csv), "SJIS", "UNICODE")));
+  box.appendChild(msg("ok", `✔ ${editRows.length}行 / ${editHeader.length}列 をShift-JISで書き出しました(変更したセル ${editChangedCount()}個)。RMSの商品一括編集(またはSFTP /ritem/batch/)にアップロードしてください。`));
 });
 </script>
 </body>
